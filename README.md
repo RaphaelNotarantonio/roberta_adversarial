@@ -1,5 +1,4 @@
 # roberta_adversarial
-Adversarial attack on a Roberta Task
 
 Adversarial attacks have given very efficient results applied to image classification. Here, we work on applying adversarial attacks to some NLP tasks.
 
