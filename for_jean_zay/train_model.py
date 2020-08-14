@@ -7,7 +7,7 @@ Original file is located at
     https://colab.research.google.com/drive/1PjZy0d8dONMhiBPDtxnkVv5HYBf6PDhN
 """
 
-!pip install transformers
+pip install transformers
 
 import torch
 import csv 
