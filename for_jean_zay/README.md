@@ -4,7 +4,7 @@ First clone this git:
 
 ```
 cd $WORK
-git clone https://github.com/RaphaelNotarantonio/roberta_adversarial/for_jean_zay.git
+git clone https://github.com/RaphaelNotarantonio/roberta_adversarial/tree/master/for_jean_zay.git
 ```
 
 And then download Stanford data:
