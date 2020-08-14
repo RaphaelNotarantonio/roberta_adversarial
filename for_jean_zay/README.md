@@ -15,3 +15,10 @@ git clone https://gist.github.com/60c2bdb54d156a41194446737ce03e2e.git download_
 python download_glue_repo/download_glue_data.py --data_dir='glue_data' --tasks='SST'
 ```
 
+Then whenever you want to finetune roberta:
+
+```
+sbatch launch_model_train.py
+```
+
+
