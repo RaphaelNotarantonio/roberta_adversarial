@@ -9,13 +9,14 @@
 #SBATCH --time=3:00:00              # maximum execution time (HH:MM:SS)
 #SBATCH --output=pgd_attack%j.out # output file name
 #SBATCH --error=pgd_attack%j.err  # error file name
-#SBATCH --array=1-10
 
 
 cd ${SLURM_SUBMIT_DIR}
 
 module purge
 module load pytorch-gpu/py3/1.4.0 
+pip install transformers
+pip install advertorch
 
-IID_ENUMER=('0' '1' '2' '3' '4' '5' '6' '7' '8' '9') 
-python ./attack.py  --iid ${IID_ENUMER[$SLURM_ARRAY_TASK_ID]} &
+
+python ./attack.py  --iid ${'0'} & --indlist ${'[5,8]'} & --eps ${'0.03'} & --epscand ${'0.03'} & --nb_iter ${'100'} & --eps_iter ${'0.5'} & --rayon ${'0.4'} & --ord ${'np.inf'} &
