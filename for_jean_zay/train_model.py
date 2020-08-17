@@ -135,9 +135,10 @@ def main():
       output_attentions = False, # Whether the model returns attentions weights.
       output_hidden_states = False, # Whether the model returns all hidden-states.
   )
-
-  # Tell pytorch to run this model on the GPU.
-  model.cuda()
+  # If there's a GPU available...
+  if torch.cuda.is_available():  
+      # Tell pytorch to run this model on the GPU.
+      model.cuda()
 
 
   
