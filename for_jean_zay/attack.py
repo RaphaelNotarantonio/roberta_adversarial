@@ -2,7 +2,13 @@
 
 # !!faire la liaison avec le précédent (récupérer le modèle.)!! + nettoyer fonctions désuètes
 
-pip install advertorch 
+#pip install advertorch 
+#pip install transformers
+
+from transformers import RobertaTokenizer
+import csv
+import torch
+from transformers import RobertaForSequenceClassification, RobertaConfig
 
 from __future__ import absolute_import
 from __future__ import division
@@ -692,6 +698,90 @@ def main(): #metavar?
     parser.add_argument('--ord', type=int, default=np.inf, metavar='N',
                         help='norm choice')
     args = parser.parse_args()
+    
+    
+    #load encoder
+    tokenizer = RobertaTokenizer.from_pretrained('roberta-base') 
+
+    #get data and encode it
+    sentences=[]
+    labels=[]
+    with open("./glue_data/SST-2/dev.tsv") as tsvfile:
+        tsvreader = csv.reader(tsvfile, delimiter="\t")
+        for i, line in enumerate(tsvreader):
+          if i>0:
+            sentences += [line[0]]
+            labels += [int(line[1])]
+
+    # ici juste un tour pour voir quelle est la taille max . on visera un peu pls haut par sécurité.
+    max_len = 0
+    # For every sentence...
+    for sent in sentences:
+
+        # Tokenize the text and add `[CLS]` and `[SEP]` tokens.
+        input_ids = tokenizer.encode(sent, add_special_tokens=True)
+
+        # Update the maximum sentence length.
+        max_len = max(max_len, len(input_ids))
+
+    print('Max sentence length: ', max_len)
+
+    input_ids = []
+
+    for sent in sentences:
+      encoded_dict = tokenizer.encode(
+                            sent,                      # Sentence to encode.
+                            add_special_tokens = True, # Add '[CLS]' and '[SEP]'
+                            max_length = 64,           # Pad & truncate all sentences.
+                            truncation=True,  
+                            pad_to_max_length = True,
+                            return_tensors = 'pt',     # Return pytorch tensors.
+                       )
+      # Add the encoded sentence to the list.    
+      input_ids.append(encoded_dict)
+
+    # Convert the lists into tensors.
+    input_ids = torch.cat(input_ids, dim=0)
+    labels = torch.tensor(labels)
+
+    # Print sentence 0, now as a list of IDs.
+    print('Original: ', sentences[0])
+    print('Token IDs:', input_ids[0])
+
+
+    # If there's a GPU available...
+    if torch.cuda.is_available():    
+
+        # Tell PyTorch to use the GPU.    
+        device = torch.device("cuda")
+
+        print('There are %d GPU(s) available.' % torch.cuda.device_count())
+
+        print('We will use the GPU:', torch.cuda.get_device_name(0))
+
+    # If not...
+    else:
+        print('No GPU available, using the CPU instead.')
+        device = torch.device("cpu")
+        
+        
+    
+    # Load BertForSequenceClassification, the pretrained BERT model with a single 
+    # linear classification layer on top. 
+    model = RobertaForSequenceClassification.from_pretrained(
+        "roberta-base", # Use the 12-layer BERT model, with an uncased vocab.
+        num_labels = 2, # The number of output labels--2 for binary classification.
+                       # You can increase this for multi-class tasks.   
+        output_attentions = False, # Whether the model returns attentions weights.
+        output_hidden_states = False, # Whether the model returns all hidden-states.
+    )
+    # If there's a GPU available...
+    if torch.cuda.is_available():   
+      # Tell pytorch to run this model on the GPU.
+      model.cuda()
+    #load saved model (which is finetuned roberta)
+    model.load_state_dict(torch.load(roberta_finetuned.pt))
+    model.eval()
 
     whole_study(args.iid,args.indlist,eps=args.eps,epscand=args.epscand,nb_iter=args.nb_iter,eps_iter=args.eps_iter,rayon=args.rayon,ord=args.ord)  
 
