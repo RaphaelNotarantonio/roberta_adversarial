@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-# !!faire la liaison avec le précédent (récupérer le modèle.)!! + nettoyer fonctions désuètes
 
 #pip install advertorch 
 #pip install transformers
