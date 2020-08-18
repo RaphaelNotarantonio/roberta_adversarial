@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-pip install transformers
 
 import torch
 import csv 
