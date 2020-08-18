@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
-
-
-#pip install advertorch 
-#pip install transformers
-
+ 
 from transformers import RobertaTokenizer
 import csv
 import torch
