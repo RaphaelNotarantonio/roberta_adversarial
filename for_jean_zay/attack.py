@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 import random
 from time import time
 import pandas as pd 
-
+  
 from advertorch.utils import clamp
 from advertorch.utils import normalize_by_pnorm
 from advertorch.utils import clamp_by_pnorm
@@ -764,7 +764,7 @@ def main(): #metavar?
     # Load BertForSequenceClassification, the pretrained BERT model with a single 
     # linear classification layer on top. 
     model = RobertaForSequenceClassification.from_pretrained(
-        "roberta-base", # Use the 12-layer BERT model, with an uncased vocab.
+        "./my_pretrained", # Use the 12-layer BERT model, with an uncased vocab.
         num_labels = 2, # The number of output labels--2 for binary classification.
                        # You can increase this for multi-class tasks.   
         output_attentions = False, # Whether the model returns attentions weights.
