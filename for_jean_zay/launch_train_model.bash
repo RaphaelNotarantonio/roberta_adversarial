@@ -15,7 +15,6 @@ set -x
 cd ${SLURM_SUBMIT_DIR}
 
 module purge
-module load pytorch-gpu/py3/1.4.0 
-pip install transformers
+module load pytorch-gpu/py3/1.6.0
 
-python ./train_model.py
+srun python ./train_model.py
