@@ -5,11 +5,6 @@ import csv
 import torch
 from transformers import RobertaForSequenceClassification, RobertaConfig
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import numpy as np
 import torch
 import torch.nn as nn
@@ -775,7 +770,7 @@ def main(): #metavar?
       # Tell pytorch to run this model on the GPU.
       model.cuda()
     #load saved model (which is finetuned roberta)
-    model.load_state_dict(torch.load(roberta_finetuned.pt))
+    model.load_state_dict(torch.load('./roberta_finetuned.pt'))
     model.eval()
 
     whole_study(args.iid,args.indlist,eps=args.eps,epscand=args.epscand,nb_iter=args.nb_iter,eps_iter=args.eps_iter,rayon=args.rayon,ord=args.ord)  
