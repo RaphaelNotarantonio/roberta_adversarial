@@ -721,107 +721,116 @@ def main(): #metavar?
     
     ###
     
-    iid=2
-    indlist=[1,2]
-    eps=0.3
-    epscand=0.2
-    nb_iter=50
-    eps_iter=0.5
-    rayon=0.2
-    ord=np.inf
-    
     t0 = time()
+    
+    l1=[2,3]
+    l2=[[1,2],[1,3]]
+    for iid,indlist in zip(l1,l2):
+     for ord in [np.inf,2]:
+      eps=0.3
+      epscand=0.03
+      nb_iter=1500
+      eps_iter=0.5
+      rayon=0.4
 
-    nind=len(indlist)
-  
-    res_se=None 
-    res_or=None 
-    res_lw=None 
-    res_lg=None 
-    res_ne=None 
-    res_cs=None 
 
-    mf=0
+      nind=len(indlist)
 
-    x = input_ids[iid].unsqueeze(0).to(device)
-    y = labels[iid].unsqueeze(0).to(device)
-    neigh=3
-   
-    if float(model(x,labels=y)[0])>float(model(x,labels=1-y)[0]): #if model misclassifies
-      mf+=1
-      print("sentence already misclassified")  
-      #return res_se, res_or,res_lw,res_lg,res_ne,res_cs
-    else: #model classifies correctly so it makes sense to try to fool it
+      res_se=[] 
+      res_or=[] 
+      res_lw=[] 
+      res_lg=[] 
+      res_ne=[] 
+      res_cs=[] 
 
-      print("original sentence:")
-      print(tokenizer.decode(x[0]))
-      print("is classified as:")
-      if bool(y==1):
-        print("positive")
-      else:
-        print("negative")
-      print("\n")
+      mf=0
 
-      orig_wordlist=[]
-      for u in range(nind):
-        print("let's change word number"+str(indlist[u])+"which is:")
-        orig_word=tokenizer.decode(x[0][indlist[u]].unsqueeze(0))
-        print(orig_word)
-        orig_wordlist+=[orig_word]
-      print("\n")
+      x = input_ids[iid].unsqueeze(0).to(device)
+      y = labels[iid].unsqueeze(0).to(device)
+      neigh=3
 
-      emb=predict1(x)
-       
-      new_word=['']*nind  
-      print("Does our PGD output's first neighboor fool model?:")
-        #0.04 .08  .12 pas vraiment assez, et 0.5 trop
-      att=PGDAttack(predict2, loss_fn=None, eps=eps, epscand=epscand, nb_iter=nb_iter, #0.02, 3000, 0.001 
-                eps_iter=eps_iter,rayon=rayon, rand_init=True, clip_min=-1., clip_max=1.,
-                ord=ord, l1_sparsity=None, targeted=False)  #0.8#.11#.14                            
-      rval, word_balance_memory, loss_memory, tablist, fool =att.perturb_fool_many(x,emb,indlist,y)
-      print(fool)  
+      if float(model(x,labels=y)[0])>float(model(x,labels=1-y)[0]): #if model misclassifies
+        mf+=1
+        print("sentence already misclassified")  
+        #return res_se, res_or,res_lw,res_lg,res_ne,res_cs
+      else: #model classifies correctly so it makes sense to try to fool it
 
-      #closest_words0list=[]
-      csnlist=[0]*nind
-      
-      #for u in range(nind):
-      #  print(str(neigh)+" dictionary neighboors of PGD algo output:")
-      #  closest_words0=neighboors(rval[0][indlist[u]],neigh)[0]
-      #  closest_words0list+=[closest_words0] 
-      #fool=float(model(replacelist(x,indlist,closest_words0list),labels=1-y)[0])<float(model(replacelist(x,indlist,closest_words0list),labels=y)[0])
-      #if fool: 
-      #  print("indeed it has been fooled")  
-      #for u in range(nind):
-      #  print("csn proximity between original word and advers word:")
-      #  csnlist[u]=float(torch.matmul(F.normalize(model.roberta.embeddings.word_embeddings(closest_words0list[u]), p=2, dim=0), torch.transpose(F.normalize(model.roberta.embeddings.word_embeddings(x[0][indlist[u]]).unsqueeze(0), p=2, dim=1),0,1)))
-      #  print(csnlist[u])
+        print("original sentence:")
+        print(tokenizer.decode(x[0]))
+        print("is classified as:")
+        if bool(y==1):
+          print("positive")
+        else:
+          print("negative")
+        print("\n")
+
+        orig_wordlist=[]
+        for u in range(nind):
+          print("let's change word number"+str(indlist[u])+"which is:")
+          orig_word=tokenizer.decode(x[0][indlist[u]].unsqueeze(0))
+          print(orig_word)
+          orig_wordlist+=[orig_word]
+        print("\n")
+
+        emb=predict1(x)
+
+        new_word=['']*nind  
+        print("Does our PGD output's first neighboor fool model?:")
+          #0.04 .08  .12 pas vraiment assez, et 0.5 trop
+        att=PGDAttack(predict2, loss_fn=None, eps=eps, epscand=epscand, nb_iter=nb_iter, #0.02, 3000, 0.001 
+                  eps_iter=eps_iter,rayon=rayon, rand_init=True, clip_min=-1., clip_max=1.,
+                  ord=ord, l1_sparsity=None, targeted=False)  #0.8#.11#.14                            
+        rval, word_balance_memory, loss_memory, tablist, fool =att.perturb_fool_many(x,emb,indlist,y)
+        print(fool)  
+
+        #closest_words0list=[]
+        csnlist=[0]*nind
+
+        #for u in range(nind):
+        #  print(str(neigh)+" dictionary neighboors of PGD algo output:")
+        #  closest_words0=neighboors(rval[0][indlist[u]],neigh)[0]
+        #  closest_words0list+=[closest_words0] 
+        #fool=float(model(replacelist(x,indlist,closest_words0list),labels=1-y)[0])<float(model(replacelist(x,indlist,closest_words0list),labels=y)[0])
+        #if fool: 
+        #  print("indeed it has been fooled")  
+        #for u in range(nind):
+        #  print("csn proximity between original word and advers word:")
+        #  csnlist[u]=float(torch.matmul(F.normalize(model.roberta.embeddings.word_embeddings(closest_words0list[u]), p=2, dim=0), torch.transpose(F.normalize(model.roberta.embeddings.word_embeddings(x[0][indlist[u]]).unsqueeze(0), p=2, dim=1),0,1)))
+        #  print(csnlist[u])
+
+        for u in range(nind):
+          new_word[u]=first(tablist[u][-1]) 
+          #new_word[u]=tokenizer.decode(closest_words0list[u].unsqueeze(0))
+        print("\n")
+
+        for u in range(nind):
+          print("csn proximity between original word and advers word:")
+          csnlist[u]=float(torch.matmul(F.normalize(model.roberta.embeddings.word_embeddings(torch.tensor(tokenizer.encode(new_word[u])[1])), p=2, dim=0), torch.transpose(F.normalize(model.roberta.embeddings.word_embeddings(x[0][indlist[u]]).unsqueeze(0), p=2, dim=1),0,1)))
+          print(csnlist[u])
         
-      for u in range(nind):
-        new_word[u]=first(tablist[u][-1]) 
-        #new_word[u]=tokenizer.decode(closest_words0list[u].unsqueeze(0))
-      print("\n")
-      
-      for u in range(nind):
-        print("csn proximity between original word and advers word:")
-        csnlist[u]=float(torch.matmul(F.normalize(model.roberta.embeddings.word_embeddings(tokenizer.encode(new_word[u]).squeeze(0)), p=2, dim=0), torch.transpose(F.normalize(model.roberta.embeddings.word_embeddings(x[0][indlist[u]]).unsqueeze(0), p=2, dim=1),0,1)))
-        print(csnlist[u])
-      
-      res_se=tokenizer.decode(x[0])
-      res_or=orig_wordlist
-      res_lw=tablist
-      res_lg=lenlist(tablist) 
-      res_ne=new_word
-      res_cs=csnlist
-      print(res_se)
-      print(res_or)
-      print(res_lw)
-      print(res_lg)
-      print(res_ne)
-      print(res_cs)
+        print(tokenizer.decode(x[0]))
+        print(orig_wordlist)
+        print(tablist)
+        print(lenlist(tablist))
+        print(new_word)
+        print(csnlist)
+        
+        if fool:
+         res_se+=[tokenizer.decode(x[0])]
+         res_or+=[orig_wordlist]
+         res_lw+=[tablist]
+         res_lg+=[lenlist(tablist)] 
+         res_ne+=[new_word]
+         res_cs+=[csnlist]
 
+    df = pd.DataFrame(list(zip(res_se, res_or,res_lw,res_lg,res_ne,res_cs)), 
+               columns =['sentence', 'original word', 'not-fooling words ( = path)', 'path length', 'new word','csn similarity']) 
     t1 = time()
 
     print('function takes %f' %(t1-t0))
+    
+    df.to_csv('results.csv', index = False)  #r
+   
 
     #return res_se, res_or,res_lw,res_lg,res_ne,res_cs
     ###
