@@ -139,94 +139,6 @@ def projection_simplex_sort(v, z=1):
     return w
 
 
-
-#pgd attack classes
-class PGDAttack(Attack, LabelMixin):
-    """
-    The projected gradient descent attack (Madry et al, 2017).
-    The attack performs nb_iter steps of size eps_iter, while always staying
-    within eps from the initial point.
-    Paper: https://arxiv.org/pdf/1706.06083.pdf
-    :param predict: forward pass function.
-    :param loss_fn: loss function.
-    :param eps: maximum distortion.
-    :param nb_iter: number of iterations.
-    :param eps_iter: attack step size.
-    :param rand_init: (optional bool) random initialization.
-    :param clip_min: mininum value per input dimension.
-    :param clip_max: maximum value per input dimension.
-    :param ord: (optional) the order of maximum distortion (inf or 2).
-    :param targeted: if the attack is targeted.
-    """    
-
-    def __init__(
-            self, predict, loss_fn=None, eps=0.3, epscand=0.03, nb_iter=40,
-            eps_iter=0.01, rayon=0.5,rand_init=True, clip_min=0., clip_max=1.,
-            ord=np.inf, l1_sparsity=None, targeted=False):
-        """
-        Create an instance of the PGDAttack.
-        """
-        super(PGDAttack, self).__init__(
-            predict, loss_fn, clip_min, clip_max)
-        self.eps = eps
-        self.epscand= epscand
-        self.nb_iter = nb_iter
-        self.eps_iter = eps_iter
-        self.rayon= rayon
-        self.rand_init = rand_init
-        self.ord = ord
-        self.targeted = targeted  
-        if self.loss_fn is None:
-            self.loss_fn = nn.CrossEntropyLoss(reduction="sum") #or no reduction
-        self.l1_sparsity = l1_sparsity
-        assert is_float_or_torch_tensor(self.eps_iter)
-        assert is_float_or_torch_tensor(self.eps)
-
-    def perturb_fool_many(self, x, emb, indlist, y=None): #list of ind of words to be perturbed
-        """
-        Given examples (x, y), returns their adversarial counterparts with
-        an attack length of eps.
-        :param x: input tensor.
-        :param y: label tensor.
-                  - if None and self.targeted=False, compute y as predicted
-                    labels.
-                  - if self.targeted=True, then y must be the targeted labels.
-        :return: tensor containing perturbed inputs.
-        """
-        emb, y = self._verify_and_process_inputs(emb, y) #???
-
-        delta = torch.zeros_like(emb) 
-        delta = nn.Parameter(delta)
-        if self.rand_init: 
-            rand_init_delta( 
-                delta, emb, np.inf, self.eps, self.clip_min, self.clip_max)
-            delta.data = clamp(
-                emb + delta.data, min=self.clip_min, max=self.clip_max) - emb  
-
-        with torch.no_grad():
-          for t in range(delta.size()[1]):
-            if not(t in indlist):
-              for k in range(delta.size()[2]):
-                delta[0][t][k]=0
-          if self.ord == 0: 
-            delta[0]=my_proj_all(emb[0]+delta[0],emb[0],indlist,self.eps)-emb[0]
-              
-
-        #delta.data = clean(x,delta.data) #clean
-
- 
-        rval, norm_memory, loss_memory, tablist, fool = perturb_iterative_fool_many(
-            x, emb, indlist, y, self.predict, nb_iter=self.nb_iter,
-            eps=self.eps, epscand=self.epscand, eps_iter=self.eps_iter,
-            loss_fn=self.loss_fn, minimize=self.targeted,
-            ord=self.ord, clip_min=self.clip_min,
-            clip_max=self.clip_max, delta_init=delta,
-            l1_sparsity=self.l1_sparsity,rayon=self.rayon
-        )
-
-        return rval.data, norm_memory, loss_memory, tablist, fool
-
-
 # algorithm to attack a sentence
 def whole_study(iid,indlist,eps=0.03, epscand=0.03, nb_iter=1000,eps_iter=0.5,rayon=0.3,ord=0):
 
@@ -718,12 +630,100 @@ def main(): #metavar?
       plt.show()
       emb_adv = clamp(embvar + delta, clip_min, clip_max)
       return emb_adv, balance_memory, loss_memory, tablist, fool
+     
+    #pgd attack classes
+    class PGDAttack(Attack, LabelMixin):
+      """
+      The projected gradient descent attack (Madry et al, 2017).
+      The attack performs nb_iter steps of size eps_iter, while always staying
+      within eps from the initial point.
+      Paper: https://arxiv.org/pdf/1706.06083.pdf
+      :param predict: forward pass function.
+      :param loss_fn: loss function.
+      :param eps: maximum distortion.
+      :param nb_iter: number of iterations.
+      :param eps_iter: attack step size.
+      :param rand_init: (optional bool) random initialization.
+      :param clip_min: mininum value per input dimension.
+      :param clip_max: maximum value per input dimension.
+      :param ord: (optional) the order of maximum distortion (inf or 2).
+      :param targeted: if the attack is targeted.
+      """    
+
+      def __init__(
+              self, predict, loss_fn=None, eps=0.3, epscand=0.03, nb_iter=40,
+              eps_iter=0.01, rayon=0.5,rand_init=True, clip_min=0., clip_max=1.,
+              ord=np.inf, l1_sparsity=None, targeted=False):
+          """
+          Create an instance of the PGDAttack.
+          """
+          super(PGDAttack, self).__init__(
+              predict, loss_fn, clip_min, clip_max)
+          self.eps = eps
+          self.epscand= epscand
+          self.nb_iter = nb_iter
+          self.eps_iter = eps_iter
+          self.rayon= rayon
+          self.rand_init = rand_init
+          self.ord = ord
+          self.targeted = targeted  
+          if self.loss_fn is None:
+              self.loss_fn = nn.CrossEntropyLoss(reduction="sum") #or no reduction
+          self.l1_sparsity = l1_sparsity
+          assert is_float_or_torch_tensor(self.eps_iter)
+          assert is_float_or_torch_tensor(self.eps)
+
+      def perturb_fool_many(self, x, emb, indlist, y=None): #list of ind of words to be perturbed
+          """
+          Given examples (x, y), returns their adversarial counterparts with
+          an attack length of eps.
+          :param x: input tensor.
+          :param y: label tensor.
+                    - if None and self.targeted=False, compute y as predicted
+                      labels.
+                    - if self.targeted=True, then y must be the targeted labels.
+          :return: tensor containing perturbed inputs.
+          """
+          emb, y = self._verify_and_process_inputs(emb, y) #???
+
+          delta = torch.zeros_like(emb) 
+          delta = nn.Parameter(delta)
+          if self.rand_init: 
+              rand_init_delta( 
+                  delta, emb, np.inf, self.eps, self.clip_min, self.clip_max)
+              delta.data = clamp(
+                  emb + delta.data, min=self.clip_min, max=self.clip_max) - emb  
+
+          with torch.no_grad():
+            for t in range(delta.size()[1]):
+              if not(t in indlist):
+                for k in range(delta.size()[2]):
+                  delta[0][t][k]=0
+            if self.ord == 0: 
+              delta[0]=my_proj_all(emb[0]+delta[0],emb[0],indlist,self.eps)-emb[0]
+
+
+          #delta.data = clean(x,delta.data) #clean
+
+
+          rval, norm_memory, loss_memory, tablist, fool = perturb_iterative_fool_many(
+              x, emb, indlist, y, self.predict, nb_iter=self.nb_iter,
+              eps=self.eps, epscand=self.epscand, eps_iter=self.eps_iter,
+              loss_fn=self.loss_fn, minimize=self.targeted,
+              ord=self.ord, clip_min=self.clip_min,
+              clip_max=self.clip_max, delta_init=delta,
+              l1_sparsity=self.l1_sparsity,rayon=self.rayon
+          )
+
+          return rval.data, norm_memory, loss_memory, tablist, fool 
+     
+     
     
     
     ###
     
-    iid=0
-    indlist=[5,8]
+    iid=2
+    indlist=[1,2]
     eps=0.3
     epscand=0.2
     nb_iter=50
