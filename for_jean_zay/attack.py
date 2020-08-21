@@ -28,46 +28,6 @@ from advertorch.attacks.base import Attack
 from advertorch.attacks.base import LabelMixin
 from advertorch.attacks.utils import rand_init_delta
 
-
-#define the two forward functions (we cut our model in two parts)
-
-def predict1(x): #ex: x = input_ids[0].unsqueeze(0).to(device)
-
-  emb=list(model.roberta.embeddings.children())[:1][0](x) #embedding of x
-
-  return emb
-
-def predict2(x,emb):
-
-  #some model requirements for the calculation
-  padding_idx=1
-  input_shape = x.size()
-  seq_length = input_shape[1]
-  device = torch.device("cuda") 
-  position_ids = create_position_ids_from_input_ids(x.to('cpu'), 1).to(device) 
-  token_type_ids=torch.zeros(input_shape, dtype=torch.long, device=device)
-
-  #model calculations:
-  emb2=list(model.roberta.embeddings.children())[1:][0](position_ids)
-  emb3=list(model.roberta.embeddings.children())[1:][1](token_type_ids)
-  ess=list(model.roberta.embeddings.children())[1:][2](emb+emb2+emb3)  
-  out_1st=list(model.roberta.embeddings.children())[1:][3](ess)  #result of the whole embedding layer of roberta
-
-  #getting result of encoder layer of roberta
-  out_2nd=model.roberta.encoder.layer[:12][0](out_1st)
-  for i in range(1,12):
-    out_2nd=model.roberta.encoder.layer[:12][i](out_2nd[0])
-
-  #getting result of pooler layer of roberta
-  out_3nd = model.roberta.pooler(out_2nd[0])
-  out_4nd=(out_2nd[0], out_3nd,) + out_2nd[1:]
-  out_fin=out_4nd[0]
-
-  #getting result of classifier layer of roberta
-  out=model.classifier(out_fin) #this is equivalent to model(x)
-
-  return out
-
 #required functions:
 def sentlong(x): #real length of an input_id sentence 
   compteur = 0
@@ -140,47 +100,6 @@ def create_position_ids_from_input_ids(input_ids, padding_idx):
     incremental_indices = torch.cumsum(mask, dim=1).type_as(mask) * mask
     return incremental_indices.long() + padding_idx
 
-#find numb neighboors of embedd from the embedding dictionary
-def neighboors(embedd,numb):
-  emb_matrix = model.roberta.embeddings.word_embeddings.weight
-  normed_emb_matrix=F.normalize(emb_matrix, p=2, dim=1) 
-  normed_emb_word=F.normalize(embedd, p=2, dim=0) 
-  cosine_similarity = torch.matmul(normed_emb_word, torch.transpose(normed_emb_matrix,0,1))
-  calc, closest_words = torch.topk(cosine_similarity,numb,dim=0)
-  print(tokenizer.decode(closest_words))
-  return closest_words
-
-#find numb neighboors of embedd from the embedding dictionary
-def neighboors_np(embedd,numb):
-  emb_matrix = model.roberta.embeddings.word_embeddings.weight
-  normed_emb_matrix=F.normalize(emb_matrix, p=2, dim=1) 
-  normed_emb_word=F.normalize(embedd, p=2, dim=0) 
-  cosine_similarity = torch.matmul(normed_emb_word, torch.transpose(normed_emb_matrix,0,1))
-  calc, closest_words = torch.topk(cosine_similarity,numb,dim=0)
-  return closest_words 
-
-def neighboors_np_dens(embedd,rayon): #advers=neighboors_np((embvar+delta)[0][indlistvar[t]],1)[0]
-  emb_matrix = model.roberta.embeddings.word_embeddings.weight
-  normed_emb_matrix=F.normalize(emb_matrix, p=2, dim=1) 
-  normed_emb_word=F.normalize(embedd, p=2, dim=0) 
-  cosine_similarity = torch.matmul(normed_emb_word, torch.transpose(normed_emb_matrix,0,1))
-  calc, closest_words = torch.topk(cosine_similarity,1,dim=0)
-  compteur=0
-  for t in range(len(cosine_similarity)): #evitez de faire DEUX boucles .
-    if cosine_similarity[t]>rayon:
-      compteur+=1
-  return closest_words, compteur
-
-def neighboors_np_dens_cand(embedd,rayon,candidates): #advers=neighboors_np((embvar+delta)[0][indlistvar[t]],1)[0]
-  normed_emb_word=F.normalize(embedd, p=2, dim=0) 
-  cosine_similarity = torch.matmul(normed_emb_word, torch.transpose(candidates,0,1))
-  calc, closest_words = torch.topk(cosine_similarity,1,dim=0)
-  compteur=0 
-  for t in range(len(cosine_similarity)): #evitez de faire DEUX boucles .
-    if cosine_similarity[t]>rayon:
-      compteur+=1 #densité seulement dans l'intersection des possibles candidats (!)
-  return closest_words, compteur
-
 def lenlist(l):
   res=[]
   for li in l:
@@ -200,40 +119,6 @@ def replacelist(x,indlist,wordlist):
     xprime[0][indlist[t]]=wordlist[t]
   return xprime
 
-# apply PGD algo to maximize loss in the neighborhood of x by changing word at index ind
-def descent(x,y,ind):
-  emb=predict1(x)
-  att=PGDAttack(predict2, loss_fn=None, eps=0.3, nb_iter=100,
-            eps_iter=0.005, rand_init=True, clip_min=-1., clip_max=1.,
-            ord=np.inf, l1_sparsity=None, targeted=False)
-  rval, norm_memory, loss_memory =att.perturb(x,emb,ind,y)
-  return rval
-
-#dictionary neighboors of [embedding(x)+add_embed]
-def adversarial(x,add_embed):
-
-  #matrix of embeddings, and array of embeddings for which we want nearest neighboor
-  emb_matrix = model.roberta.embeddings.word_embeddings.weight
-  emb_array=list(model.roberta.embeddings.children())[:1][0](x) + add_embed
-
-  normed_emb_matrix=F.normalize(emb_matrix, p=2, dim=1) 
-  normed_emb_array=F.normalize(emb_array, p=2, dim=2) 
-
-  #find nearest neighboor
-  cosine_similarity = torch.matmul(normed_emb_array, torch.transpose(normed_emb_matrix,0,1))
-  closest_words = torch.argmax(cosine_similarity,2)
-
-  return closest_words
-
-#function to know if the adversarial input dataset does differ from the initial input dataset
-def compare(x,closest_words): 
-  diff=0
-  for i in range(x.size()[0]):
-    for j in range(x.size()[1]):
-      if not(x[i,j]==closest_words[i,j]):
-        diff+=1
-  return 100*diff/(x.size()[0]*x.size()[1])
-
 #projecting v on probability simplex
 #https://gist.github.com/mblondel/6f3b7aaad90606b98f71
 
@@ -252,10 +137,6 @@ def projection_simplex_sort(v, z=1):
     #w = torch.from_numpy(w) 
     #w=w.to(device)
     return w
-
-
-
-
 
 
 
@@ -344,240 +225,6 @@ class PGDAttack(Attack, LabelMixin):
         )
 
         return rval.data, norm_memory, loss_memory, tablist, fool
-
-def perturb_iterative_fool_many(xvar, embvar, indlistvar, yvar, predict, nb_iter, eps, epscand, eps_iter, loss_fn,rayon,
-                      delta_init=None, minimize=False, ord=np.inf,
-                      clip_min=0.0, clip_max=1.0,
-                       l1_sparsity=None):
-    """
-    Iteratively maximize the loss over the input. It is a shared method for
-    iterative attacks including IterativeGradientSign, LinfPGD, etc.
-    :param xvar: input data.
-    :param yvar: input labels.
-    :param predict: forward pass function.
-    :param nb_iter: number of iterations.
-    :param eps: maximum distortion.
-    :param eps_iter: attack step size.
-    :param loss_fn: loss function.
-    :param delta_init: (optional) tensor contains the random initialization.
-    :param minimize: (optional bool) whether to minimize or maximize the loss.
-    :param ord: (optional) the order of maximum distortion (inf or 2).
-    :param clip_min: mininum value per input dimension.
-    :param clip_max: maximum value per input dimension.
-    :param l1_sparsity: sparsity value for L1 projection.
-                  - if None, then perform regular L1 projection.
-                  - if float value, then perform sparse L1 descent from
-                    Algorithm 1 in https://arxiv.org/pdf/1904.13000v1.pdf
-    :return: tensor containing the perturbed input.
-    """
-
-    nb=len(indlistvar)
-    tablist=[]
-    for t in range(nb):
-      tablist+=[[]]
-    fool=False
-
-    #contain results
-    loss_memory=np.zeros((nb_iter,))
-    word_balance_memory=np.zeros((nb_iter,))
-    balance_memory=np.zeros((nb_iter,))
-    norm_memory0=np.zeros((nb_iter,))
-    norm_memory1=np.zeros((nb_iter,))
-    dist_memory0=np.zeros((nb_iter,))
-    dist_memory1=np.zeros((nb_iter,))
-    
-    candid=[torch.empty(0)]*nb
-    convers=[[]]*nb
-    for u in range(nb):
-      #prepare all potential candidates, once and for all
-      candidates=torch.empty([0,768]).to(device)
-      conversion=[]
-      emb_matrix=model.roberta.embeddings.word_embeddings.weight   
-      normed_emb_matrix=F.normalize(emb_matrix, p=2, dim=1) 
-      normed_emb_word=F.normalize(embvar[0][indlistvar[u]], p=2, dim=0) 
-      cosine_similarity = torch.matmul(normed_emb_word, torch.transpose(normed_emb_matrix,0,1))
-      for t in range(len(cosine_similarity)): #evitez de faire DEUX boucles .
-        if cosine_similarity[t]>epscand:
-          candidates=torch.cat((candidates,normed_emb_matrix[t].unsqueeze(0)),0)
-          conversion+=[t]
-      candid[u]=candidates
-      convers[u]=conversion
-      print("nb of candidates :")
-      print(len(conversion))
-
-    U, S, V = torch.svd(model.roberta.embeddings.word_embeddings.weight)
-
-    if delta_init is not None:
-        delta = delta_init
-    else:
-        delta = torch.zeros_like(embvar)
-
-    delta.requires_grad_()
-    ii=0
-    while ii<nb_iter and not(fool):
-        outputs = predict(xvar, embvar + delta)
-        loss = loss_fn(outputs, yvar)
-        if minimize:
-            loss = -loss 
-
-        loss.backward()
-        if ord == np.inf:    
-            grad_sign = delta.grad.data.sign()
-            grad_sign = tozerolist(grad_sign,indlistvar)
-            #grad_sign=torch.matmul(torch.cat((torch.matmul(grad_sign,v)[:,:,:50],torch.zeros([768-50]).to(device)),2),v.t())
-            delta.data = delta.data + batch_multiply(eps_iter, grad_sign)
-            delta.data = batch_clamp(eps, delta.data)
-            delta.data = clamp(embvar.data + delta.data, clip_min, clip_max #à retirer?
-                               ) - embvar.data
-            with torch.no_grad():  
-              norm_memory0[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[0]])
-              norm_memory1[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[1]])
-              delta.data = tozero(delta.data,indlistvar) 
-              adverslist=[]
-              for t in range(nb):
-                advers, nb_vois =neighboors_np_dens_cand((embvar+delta)[0][indlistvar[t]],rayon,candid[t])
-                advers=int(advers[0]) 
-                advers=torch.tensor(convers[t][advers])
-                if len(tablist[t])==0:
-                  tablist[t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
-                elif not(first(tablist[t][-1])==tokenizer.decode(advers.unsqueeze(0))): #we could also clean final list instead
-                  tablist[t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
-                adverslist+=[advers]
-              dist_memory0[ii]=torch.norm((embvar+delta)[0][indlistvar[0]]-predict1(adverslist[0].unsqueeze(0).to(device))[0])
-              dist_memory1[ii]=torch.norm((embvar+delta)[0][indlistvar[1]]-predict1(adverslist[1].unsqueeze(0).to(device))[0])
-              word_balance_memory[ii]=float(model(replacelist(xvar,indlistvar,adverslist),labels=1-yvar)[0])-float(model(replacelist(xvar,indlistvar,adverslist),labels=yvar)[0])
-              if word_balance_memory[ii]<0:
-                fool=True 
-                print("fooled by :")
-                print(adverslist)   
-                print("\n")         
-            #specifier la vitesse de chaque indice? deux listes en input, une eps-iter une indice? Le grad répartit déjà le poids:: donc non.
-
-        elif ord == 0: 
-            grad = delta.grad.data 
-            grad = tozero(grad,indlistvar) #le [0] est compris dans tozero
-            #grad[0] = my_proj_all(grad[0],embvar[0],indlistvar,eps) #on projette le gradient aussi
-            delta.data = delta.data + batch_multiply(eps_iter, grad)
-            delta.data[0] = my_proj_all(embvar.data[0]+delta.data[0],embvar[0],indlistvar,eps) -embvar.data[0]
-            delta.data = clamp(embvar.data + delta.data, clip_min, clip_max
-                               ) - embvar.data #à virer je pense
-            with torch.no_grad():
-              norm_memory0[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[0]])
-              norm_memory1[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[1]])
-              delta.data = tozero(delta.data,indlistvar) 
-              adverslist=[]
-              for t in range(nb):
-                advers, nb_vois =neighboors_np_dens_cand((embvar+delta)[0][indlistvar[t]],rayon,candid[t])
-                advers=int(advers[0]) 
-                advers=torch.tensor(convers[t][advers])
-                if len(tablist[t])==0:
-                  tablist[t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
-                elif not(first(tablist[t][-1])==tokenizer.decode(advers.unsqueeze(0))): #we could also clean final list instead
-                  tablist[t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
-                adverslist+=[advers]
-              dist_memory0[ii]=torch.norm((embvar+delta)[0][indlistvar[0]]-predict1(adverslist[0].unsqueeze(0).to(device))[0])
-              dist_memory1[ii]=torch.norm((embvar+delta)[0][indlistvar[1]]-predict1(adverslist[1].unsqueeze(0).to(device))[0])
-              word_balance_memory[ii]=float(model(replacelist(xvar,indlistvar,adverslist),labels=1-yvar)[0])-float(model(replacelist(xvar,indlistvar,adverslist),labels=yvar)[0])
-              if word_balance_memory[ii]<0:
-                fool=True 
-                print("fooled by :")
-                print(adverslist)   
-                print("\n")           
-
-        elif ord == 2: #plutôt ça non?
-            grad = delta.grad.data
-            grad = tozero(grad,indlistvar) 
-            grad = normalize_by_pnorm(grad)
-            delta.data = delta.data + batch_multiply(eps_iter, grad)
-            delta.data = clamp(embvar.data + delta.data, clip_min, clip_max
-                               ) - embvar.data
-            if eps is not None:
-                delta.data = clamp_by_pnorm(delta.data, ord, eps)
-            with torch.no_grad():
-              norm_memory0[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[0]])
-              norm_memory1[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[1]])
-              delta.data = tozero(delta.data,indlistvar) 
-              adverslist=[]
-              for t in range(nb):
-                advers, nb_vois =neighboors_np_dens_cand((embvar+delta)[0][indlistvar[t]],rayon,candid[t])
-                advers=int(advers[0]) 
-                advers=torch.tensor(convers[t][advers])
-                if len(tablist[t])==0:
-                  tablist[t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
-                elif not(first(tablist[t][-1])==tokenizer.decode(advers.unsqueeze(0))): #we could also clean final list instead
-                  tablist[t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
-                adverslist+=[advers]
-              dist_memory0[ii]=torch.norm((embvar+delta)[0][indlistvar[0]]-predict1(adverslist[0].unsqueeze(0).to(device))[0])
-              dist_memory1[ii]=torch.norm((embvar+delta)[0][indlistvar[1]]-predict1(adverslist[1].unsqueeze(0).to(device))[0])
-              word_balance_memory[ii]=float(model(replacelist(xvar,indlistvar,adverslist),labels=1-yvar)[0])-float(model(replacelist(xvar,indlistvar,adverslist),labels=yvar)[0])
-              if word_balance_memory[ii]<0:
-                fool=True 
-                print("fooled by :")
-                print(adverslist)   
-                print("\n")    
-
-        elif ord == 1:
-            grad = delta.grad.data
-            grad_sign = tozero(grad_sign,indvar)
-            #clean(xvar,grad)  #clean
-            abs_grad = torch.abs(grad)
-
-            batch_size = grad.size(0)
-            view = abs_grad.view(batch_size, -1)
-            view_size = view.size(1)
-            if l1_sparsity is None:
-                vals, idx = view.topk(1)
-            else:
-                vals, idx = view.topk(
-                    int(np.round((1 - l1_sparsity) * view_size)))
-
-            out = torch.zeros_like(view).scatter_(1, idx, vals)
-            out = out.view_as(grad)
-            grad = grad.sign() * (out > 0).float()
-            grad = normalize_by_pnorm(grad, p=1)
-            delta.data = delta.data + batch_multiply(eps_iter, grad)
-
-            delta.data = batch_l1_proj(delta.data.cpu(), eps)
-            if embvar.is_cuda:
-                delta.data = delta.data.cuda()
-            delta.data = clamp(embvar.data + delta.data, clip_min, clip_max
-                               ) - embvar.data
-        else:
-            error = "Only ord = inf, ord = 1 and ord = 2 have been implemented"
-            raise NotImplementedError(error)
-        delta.grad.data.zero_()
-        with torch.no_grad():
-          loss_memory[ii]= loss 
-          loss2 = loss_fn(outputs, 1-yvar)
-          balance_memory[ii]=loss2-loss
-        
-
-        ii+=1
-    
-  
-    plt.plot(loss_memory)
-    plt.title("evolution of embed loss")
-    plt.show()
-    plt.plot(balance_memory)
-    plt.title("evolution of embed loss difference")
-    plt.show()
-    plt.plot(word_balance_memory)
-    plt.title("evolution of word loss difference")
-    plt.show()
-    plt.plot(norm_memory0)
-    plt.title("evolution of norm ratio first word")
-    plt.show()
-    plt.plot(norm_memory1)
-    plt.title("evolution of norm ratio second word")
-    plt.show()
-    plt.plot(dist_memory0)
-    plt.title("evolution of distance first word")
-    plt.show()
-    plt.plot(dist_memory1)
-    plt.title("evolution of distance second word")
-    plt.show()
-    emb_adv = clamp(embvar + delta, clip_min, clip_max)
-    return emb_adv, balance_memory, loss_memory, tablist, fool
 
 
 # algorithm to attack a sentence
@@ -776,8 +423,302 @@ def main(): #metavar?
     #load saved model (which is finetuned roberta)
     model.load_state_dict(torch.load('./roberta_finetuned.pt', map_location=map_location))
     model.eval()
+  
 
     #whole_study(args.iid,args.indlist,eps=args.eps,epscand=args.epscand,nb_iter=args.nb_iter,eps_iter=args.eps_iter,rayon=args.rayon,ord=args.ord)
+    
+    #define the two forward functions (we cut our model in two parts)
+    def predict1(x): #ex: x = input_ids[0].unsqueeze(0).to(device)
+     emb=list(model.roberta.embeddings.children())[:1][0](x) #embedding of x
+     return emb
+   
+    def predict2(x,emb):
+
+     #some model requirements for the calculation
+     padding_idx=1
+     input_shape = x.size()
+     seq_length = input_shape[1]
+     device = torch.device("cuda") 
+     position_ids = create_position_ids_from_input_ids(x.to('cpu'), 1).to(device) 
+     token_type_ids=torch.zeros(input_shape, dtype=torch.long, device=device)
+
+     #model calculations:
+     emb2=list(model.roberta.embeddings.children())[1:][0](position_ids)
+     emb3=list(model.roberta.embeddings.children())[1:][1](token_type_ids)
+     ess=list(model.roberta.embeddings.children())[1:][2](emb+emb2+emb3)  
+     out_1st=list(model.roberta.embeddings.children())[1:][3](ess)  #result of the whole embedding layer of roberta
+
+     #getting result of encoder layer of roberta
+     out_2nd=model.roberta.encoder.layer[:12][0](out_1st)
+     for i in range(1,12):
+       out_2nd=model.roberta.encoder.layer[:12][i](out_2nd[0])
+
+     #getting result of pooler layer of roberta
+     out_3nd = model.roberta.pooler(out_2nd[0])
+     out_4nd=(out_2nd[0], out_3nd,) + out_2nd[1:]
+     out_fin=out_4nd[0]
+
+     #getting result of classifier layer of roberta
+     out=model.classifier(out_fin) #this is equivalent to model(x)
+
+     return out
+    
+    
+    #find numb neighboors of embedd from the embedding dictionary
+    def neighboors(embedd,numb):
+      emb_matrix = model.roberta.embeddings.word_embeddings.weight
+      normed_emb_matrix=F.normalize(emb_matrix, p=2, dim=1) 
+      normed_emb_word=F.normalize(embedd, p=2, dim=0) 
+      cosine_similarity = torch.matmul(normed_emb_word, torch.transpose(normed_emb_matrix,0,1))
+      calc, closest_words = torch.topk(cosine_similarity,numb,dim=0)
+      print(tokenizer.decode(closest_words))
+      return closest_words
+
+    def neighboors_np_dens_cand(embedd,rayon,candidates): #advers=neighboors_np((embvar+delta)[0][indlistvar[t]],1)[0]
+      normed_emb_word=F.normalize(embedd, p=2, dim=0) 
+      cosine_similarity = torch.matmul(normed_emb_word, torch.transpose(candidates,0,1))
+      calc, closest_words = torch.topk(cosine_similarity,1,dim=0)
+      compteur=0 
+      for t in range(len(cosine_similarity)): #evitez de faire DEUX boucles .
+        if cosine_similarity[t]>rayon:
+          compteur+=1 #densité seulement dans l'intersection des possibles candidats (!)
+      return closest_words, compteur
+    
+    
+    def perturb_iterative_fool_many(xvar, embvar, indlistvar, yvar, predict, nb_iter, eps, epscand, eps_iter, loss_fn,rayon,
+                      delta_init=None, minimize=False, ord=np.inf,
+                      clip_min=0.0, clip_max=1.0,
+                       l1_sparsity=None):
+      """
+      Iteratively maximize the loss over the input. It is a shared method for
+      iterative attacks including IterativeGradientSign, LinfPGD, etc.
+      :param xvar: input data.
+      :param yvar: input labels.
+      :param predict: forward pass function.
+      :param nb_iter: number of iterations.
+      :param eps: maximum distortion.
+      :param eps_iter: attack step size.
+      :param loss_fn: loss function.
+      :param delta_init: (optional) tensor contains the random initialization.
+      :param minimize: (optional bool) whether to minimize or maximize the loss.
+      :param ord: (optional) the order of maximum distortion (inf or 2).
+      :param clip_min: mininum value per input dimension.
+      :param clip_max: maximum value per input dimension.
+      :param l1_sparsity: sparsity value for L1 projection.
+                    - if None, then perform regular L1 projection.
+                    - if float value, then perform sparse L1 descent from
+                      Algorithm 1 in https://arxiv.org/pdf/1904.13000v1.pdf
+      :return: tensor containing the perturbed input.
+      """
+
+      nb=len(indlistvar)
+      tablist=[]
+      for t in range(nb):
+        tablist+=[[]]
+      fool=False
+
+      #contain results
+      loss_memory=np.zeros((nb_iter,))
+      word_balance_memory=np.zeros((nb_iter,))
+      balance_memory=np.zeros((nb_iter,))
+      norm_memory0=np.zeros((nb_iter,))
+      norm_memory1=np.zeros((nb_iter,))
+      dist_memory0=np.zeros((nb_iter,))
+      dist_memory1=np.zeros((nb_iter,))
+
+      candid=[torch.empty(0)]*nb
+      convers=[[]]*nb
+      for u in range(nb):
+        #prepare all potential candidates, once and for all
+        candidates=torch.empty([0,768]).to(device)
+        conversion=[]
+        emb_matrix=model.roberta.embeddings.word_embeddings.weight   
+        normed_emb_matrix=F.normalize(emb_matrix, p=2, dim=1) 
+        normed_emb_word=F.normalize(embvar[0][indlistvar[u]], p=2, dim=0) 
+        cosine_similarity = torch.matmul(normed_emb_word, torch.transpose(normed_emb_matrix,0,1))
+        for t in range(len(cosine_similarity)): #evitez de faire DEUX boucles .
+          if cosine_similarity[t]>epscand:
+            candidates=torch.cat((candidates,normed_emb_matrix[t].unsqueeze(0)),0)
+            conversion+=[t]
+        candid[u]=candidates
+        convers[u]=conversion
+        print("nb of candidates :")
+        print(len(conversion))
+
+      U, S, V = torch.svd(model.roberta.embeddings.word_embeddings.weight)
+
+      if delta_init is not None:
+          delta = delta_init
+      else:
+          delta = torch.zeros_like(embvar)
+
+      delta.requires_grad_()
+      ii=0
+      while ii<nb_iter and not(fool):
+          outputs = predict(xvar, embvar + delta)
+          loss = loss_fn(outputs, yvar)
+          if minimize:
+              loss = -loss 
+
+          loss.backward()
+          if ord == np.inf:    
+              grad_sign = delta.grad.data.sign()
+              grad_sign = tozerolist(grad_sign,indlistvar)
+              #grad_sign=torch.matmul(torch.cat((torch.matmul(grad_sign,v)[:,:,:50],torch.zeros([768-50]).to(device)),2),v.t())
+              delta.data = delta.data + batch_multiply(eps_iter, grad_sign)
+              delta.data = batch_clamp(eps, delta.data)
+              delta.data = clamp(embvar.data + delta.data, clip_min, clip_max #à retirer?
+                                 ) - embvar.data
+              with torch.no_grad():  
+                norm_memory0[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[0]])
+                norm_memory1[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[1]])
+                delta.data = tozero(delta.data,indlistvar) 
+                adverslist=[]
+                for t in range(nb):
+                  advers, nb_vois =neighboors_np_dens_cand((embvar+delta)[0][indlistvar[t]],rayon,candid[t])
+                  advers=int(advers[0]) 
+                  advers=torch.tensor(convers[t][advers])
+                  if len(tablist[t])==0:
+                    tablist[t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
+                  elif not(first(tablist[t][-1])==tokenizer.decode(advers.unsqueeze(0))): #we could also clean final list instead
+                    tablist[t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
+                  adverslist+=[advers]
+                dist_memory0[ii]=torch.norm((embvar+delta)[0][indlistvar[0]]-predict1(adverslist[0].unsqueeze(0).to(device))[0])
+                dist_memory1[ii]=torch.norm((embvar+delta)[0][indlistvar[1]]-predict1(adverslist[1].unsqueeze(0).to(device))[0])
+                word_balance_memory[ii]=float(model(replacelist(xvar,indlistvar,adverslist),labels=1-yvar)[0])-float(model(replacelist(xvar,indlistvar,adverslist),labels=yvar)[0])
+                if word_balance_memory[ii]<0:
+                  fool=True 
+                  print("fooled by :")
+                  print(adverslist)   
+                  print("\n")         
+              #specifier la vitesse de chaque indice? deux listes en input, une eps-iter une indice? Le grad répartit déjà le poids:: donc non.
+
+          elif ord == 0: 
+              grad = delta.grad.data 
+              grad = tozero(grad,indlistvar) #le [0] est compris dans tozero
+              #grad[0] = my_proj_all(grad[0],embvar[0],indlistvar,eps) #on projette le gradient aussi
+              delta.data = delta.data + batch_multiply(eps_iter, grad)
+              delta.data[0] = my_proj_all(embvar.data[0]+delta.data[0],embvar[0],indlistvar,eps) -embvar.data[0]
+              delta.data = clamp(embvar.data + delta.data, clip_min, clip_max
+                                 ) - embvar.data #à virer je pense
+              with torch.no_grad():
+                norm_memory0[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[0]])
+                norm_memory1[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[1]])
+                delta.data = tozero(delta.data,indlistvar) 
+                adverslist=[]
+                for t in range(nb):
+                  advers, nb_vois =neighboors_np_dens_cand((embvar+delta)[0][indlistvar[t]],rayon,candid[t])
+                  advers=int(advers[0]) 
+                  advers=torch.tensor(convers[t][advers])
+                  if len(tablist[t])==0:
+                    tablist[t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
+                  elif not(first(tablist[t][-1])==tokenizer.decode(advers.unsqueeze(0))): #we could also clean final list instead
+                    tablist[t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
+                  adverslist+=[advers]
+                dist_memory0[ii]=torch.norm((embvar+delta)[0][indlistvar[0]]-predict1(adverslist[0].unsqueeze(0).to(device))[0])
+                dist_memory1[ii]=torch.norm((embvar+delta)[0][indlistvar[1]]-predict1(adverslist[1].unsqueeze(0).to(device))[0])
+                word_balance_memory[ii]=float(model(replacelist(xvar,indlistvar,adverslist),labels=1-yvar)[0])-float(model(replacelist(xvar,indlistvar,adverslist),labels=yvar)[0])
+                if word_balance_memory[ii]<0:
+                  fool=True 
+                  print("fooled by :")
+                  print(adverslist)   
+                  print("\n")           
+
+          elif ord == 2: #plutôt ça non?
+              grad = delta.grad.data
+              grad = tozero(grad,indlistvar) 
+              grad = normalize_by_pnorm(grad)
+              delta.data = delta.data + batch_multiply(eps_iter, grad)
+              delta.data = clamp(embvar.data + delta.data, clip_min, clip_max
+                                 ) - embvar.data
+              if eps is not None:
+                  delta.data = clamp_by_pnorm(delta.data, ord, eps)
+              with torch.no_grad():
+                norm_memory0[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[0]])
+                norm_memory1[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[1]])
+                delta.data = tozero(delta.data,indlistvar) 
+                adverslist=[]
+                for t in range(nb):
+                  advers, nb_vois =neighboors_np_dens_cand((embvar+delta)[0][indlistvar[t]],rayon,candid[t])
+                  advers=int(advers[0]) 
+                  advers=torch.tensor(convers[t][advers])
+                  if len(tablist[t])==0:
+                    tablist[t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
+                  elif not(first(tablist[t][-1])==tokenizer.decode(advers.unsqueeze(0))): #we could also clean final list instead
+                    tablist[t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
+                  adverslist+=[advers]
+                dist_memory0[ii]=torch.norm((embvar+delta)[0][indlistvar[0]]-predict1(adverslist[0].unsqueeze(0).to(device))[0])
+                dist_memory1[ii]=torch.norm((embvar+delta)[0][indlistvar[1]]-predict1(adverslist[1].unsqueeze(0).to(device))[0])
+                word_balance_memory[ii]=float(model(replacelist(xvar,indlistvar,adverslist),labels=1-yvar)[0])-float(model(replacelist(xvar,indlistvar,adverslist),labels=yvar)[0])
+                if word_balance_memory[ii]<0:
+                  fool=True 
+                  print("fooled by :")
+                  print(adverslist)   
+                  print("\n")    
+
+          elif ord == 1:
+              grad = delta.grad.data
+              grad_sign = tozero(grad_sign,indvar)
+              #clean(xvar,grad)  #clean
+              abs_grad = torch.abs(grad)
+
+              batch_size = grad.size(0)
+              view = abs_grad.view(batch_size, -1)
+              view_size = view.size(1)
+              if l1_sparsity is None:
+                  vals, idx = view.topk(1)
+              else:
+                  vals, idx = view.topk(
+                      int(np.round((1 - l1_sparsity) * view_size)))
+
+              out = torch.zeros_like(view).scatter_(1, idx, vals)
+              out = out.view_as(grad)
+              grad = grad.sign() * (out > 0).float()
+              grad = normalize_by_pnorm(grad, p=1)
+              delta.data = delta.data + batch_multiply(eps_iter, grad)
+
+              delta.data = batch_l1_proj(delta.data.cpu(), eps)
+              if embvar.is_cuda:
+                  delta.data = delta.data.cuda()
+              delta.data = clamp(embvar.data + delta.data, clip_min, clip_max
+                                 ) - embvar.data
+          else:
+              error = "Only ord = inf, ord = 1 and ord = 2 have been implemented"
+              raise NotImplementedError(error)
+          delta.grad.data.zero_()
+          with torch.no_grad():
+            loss_memory[ii]= loss 
+            loss2 = loss_fn(outputs, 1-yvar)
+            balance_memory[ii]=loss2-loss
+
+
+          ii+=1
+
+
+      plt.plot(loss_memory)
+      plt.title("evolution of embed loss")
+      plt.show()
+      plt.plot(balance_memory)
+      plt.title("evolution of embed loss difference")
+      plt.show()
+      plt.plot(word_balance_memory)
+      plt.title("evolution of word loss difference")
+      plt.show()
+      plt.plot(norm_memory0)
+      plt.title("evolution of norm ratio first word")
+      plt.show()
+      plt.plot(norm_memory1)
+      plt.title("evolution of norm ratio second word")
+      plt.show()
+      plt.plot(dist_memory0)
+      plt.title("evolution of distance first word")
+      plt.show()
+      plt.plot(dist_memory1)
+      plt.title("evolution of distance second word")
+      plt.show()
+      emb_adv = clamp(embvar + delta, clip_min, clip_max)
+      return emb_adv, balance_memory, loss_memory, tablist, fool
+    
     
     ###
     
