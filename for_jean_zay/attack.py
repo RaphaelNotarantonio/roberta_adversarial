@@ -431,11 +431,11 @@ def main(): #metavar?
       #contain results
       loss_memory=np.zeros((nb_iter,))
       word_balance_memory=np.zeros((nb_iter,))
-      balance_memory=np.zeros((nb_iter,))
-      norm_memory0=np.zeros((nb_iter,))
-      norm_memory1=np.zeros((nb_iter,))
-      dist_memory0=np.zeros((nb_iter,))
-      dist_memory1=np.zeros((nb_iter,))
+      #balance_memory=np.zeros((nb_iter,))
+      #norm_memory0=np.zeros((nb_iter,))
+      #norm_memory1=np.zeros((nb_iter,))
+      #dist_memory0=np.zeros((nb_iter,))
+      #dist_memory1=np.zeros((nb_iter,))
 
       candid=[torch.empty(0)]*nb
       convers=[[]]*nb
@@ -456,7 +456,7 @@ def main(): #metavar?
         print("nb of candidates :")
         print(len(conversion))
 
-      U, S, V = torch.svd(model.roberta.embeddings.word_embeddings.weight)
+      #U, S, V = torch.svd(model.roberta.embeddings.word_embeddings.weight)
 
       if delta_init is not None:
           delta = delta_init
@@ -481,8 +481,8 @@ def main(): #metavar?
               delta.data = clamp(embvar.data + delta.data, clip_min, clip_max #à retirer?
                                  ) - embvar.data
               with torch.no_grad():  
-                norm_memory0[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[0]])
-                norm_memory1[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[1]])
+                #norm_memory0[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[0]])
+                #norm_memory1[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[1]])
                 delta.data = tozero(delta.data,indlistvar) 
                 adverslist=[]
                 for t in range(nb):
@@ -494,14 +494,14 @@ def main(): #metavar?
                   elif not(first(tablist[t][-1])==tokenizer.decode(advers.unsqueeze(0))): #we could also clean final list instead
                     tablist[t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
                   adverslist+=[advers]
-                dist_memory0[ii]=torch.norm((embvar+delta)[0][indlistvar[0]]-predict1(adverslist[0].unsqueeze(0).to(device))[0])
-                dist_memory1[ii]=torch.norm((embvar+delta)[0][indlistvar[1]]-predict1(adverslist[1].unsqueeze(0).to(device))[0])
+                #dist_memory0[ii]=torch.norm((embvar+delta)[0][indlistvar[0]]-predict1(adverslist[0].unsqueeze(0).to(device))[0])
+                #dist_memory1[ii]=torch.norm((embvar+delta)[0][indlistvar[1]]-predict1(adverslist[1].unsqueeze(0).to(device))[0])
                 word_balance_memory[ii]=float(model(replacelist(xvar,indlistvar,adverslist),labels=1-yvar)[0])-float(model(replacelist(xvar,indlistvar,adverslist),labels=yvar)[0])
                 if word_balance_memory[ii]<0:
                   fool=True 
-                  print("fooled by :")
-                  print(adverslist)   
-                  print("\n")         
+                  #print("fooled by :")
+                  #print(adverslist)   
+                  #print("\n")         
               #specifier la vitesse de chaque indice? deux listes en input, une eps-iter une indice? Le grad répartit déjà le poids:: donc non.
 
           elif ord == 0: 
@@ -513,8 +513,8 @@ def main(): #metavar?
               delta.data = clamp(embvar.data + delta.data, clip_min, clip_max
                                  ) - embvar.data #à virer je pense
               with torch.no_grad():
-                norm_memory0[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[0]])
-                norm_memory1[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[1]])
+                #norm_memory0[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[0]])
+                #norm_memory1[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[1]])
                 delta.data = tozero(delta.data,indlistvar) 
                 adverslist=[]
                 for t in range(nb):
@@ -526,14 +526,14 @@ def main(): #metavar?
                   elif not(first(tablist[t][-1])==tokenizer.decode(advers.unsqueeze(0))): #we could also clean final list instead
                     tablist[t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
                   adverslist+=[advers]
-                dist_memory0[ii]=torch.norm((embvar+delta)[0][indlistvar[0]]-predict1(adverslist[0].unsqueeze(0).to(device))[0])
-                dist_memory1[ii]=torch.norm((embvar+delta)[0][indlistvar[1]]-predict1(adverslist[1].unsqueeze(0).to(device))[0])
+                #dist_memory0[ii]=torch.norm((embvar+delta)[0][indlistvar[0]]-predict1(adverslist[0].unsqueeze(0).to(device))[0])
+                #dist_memory1[ii]=torch.norm((embvar+delta)[0][indlistvar[1]]-predict1(adverslist[1].unsqueeze(0).to(device))[0])
                 word_balance_memory[ii]=float(model(replacelist(xvar,indlistvar,adverslist),labels=1-yvar)[0])-float(model(replacelist(xvar,indlistvar,adverslist),labels=yvar)[0])
                 if word_balance_memory[ii]<0:
                   fool=True 
-                  print("fooled by :")
-                  print(adverslist)   
-                  print("\n")           
+                  #print("fooled by :")
+                  #print(adverslist)   
+                  #print("\n")           
 
           elif ord == 2: #plutôt ça non?
               grad = delta.grad.data
@@ -545,8 +545,8 @@ def main(): #metavar?
               if eps is not None:
                   delta.data = clamp_by_pnorm(delta.data, ord, eps)
               with torch.no_grad():
-                norm_memory0[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[0]])
-                norm_memory1[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[1]])
+                #norm_memory0[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[0]])
+                #norm_memory1[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[1]])
                 delta.data = tozero(delta.data,indlistvar) 
                 adverslist=[]
                 for t in range(nb):
@@ -558,14 +558,14 @@ def main(): #metavar?
                   elif not(first(tablist[t][-1])==tokenizer.decode(advers.unsqueeze(0))): #we could also clean final list instead
                     tablist[t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
                   adverslist+=[advers]
-                dist_memory0[ii]=torch.norm((embvar+delta)[0][indlistvar[0]]-predict1(adverslist[0].unsqueeze(0).to(device))[0])
-                dist_memory1[ii]=torch.norm((embvar+delta)[0][indlistvar[1]]-predict1(adverslist[1].unsqueeze(0).to(device))[0])
+                #dist_memory0[ii]=torch.norm((embvar+delta)[0][indlistvar[0]]-predict1(adverslist[0].unsqueeze(0).to(device))[0])
+                #dist_memory1[ii]=torch.norm((embvar+delta)[0][indlistvar[1]]-predict1(adverslist[1].unsqueeze(0).to(device))[0])
                 word_balance_memory[ii]=float(model(replacelist(xvar,indlistvar,adverslist),labels=1-yvar)[0])-float(model(replacelist(xvar,indlistvar,adverslist),labels=yvar)[0])
                 if word_balance_memory[ii]<0:
                   fool=True 
-                  print("fooled by :")
-                  print(adverslist)   
-                  print("\n")    
+                  #print("fooled by :")
+                  #print(adverslist)   
+                  #print("\n")    
 
           elif ord == 1:
               grad = delta.grad.data
@@ -599,36 +599,36 @@ def main(): #metavar?
           delta.grad.data.zero_()
           with torch.no_grad():
             loss_memory[ii]= loss 
-            loss2 = loss_fn(outputs, 1-yvar)
-            balance_memory[ii]=loss2-loss
+            #loss2 = loss_fn(outputs, 1-yvar)
+            #balance_memory[ii]=loss2-loss
 
 
           ii+=1
 
 
-      plt.plot(loss_memory)
-      plt.title("evolution of embed loss")
-      plt.show()
-      plt.plot(balance_memory)
-      plt.title("evolution of embed loss difference")
-      plt.show()
-      plt.plot(word_balance_memory)
-      plt.title("evolution of word loss difference")
-      plt.show()
-      plt.plot(norm_memory0)
-      plt.title("evolution of norm ratio first word")
-      plt.show()
-      plt.plot(norm_memory1)
-      plt.title("evolution of norm ratio second word")
-      plt.show()
-      plt.plot(dist_memory0)
-      plt.title("evolution of distance first word")
-      plt.show()
-      plt.plot(dist_memory1)
-      plt.title("evolution of distance second word")
-      plt.show()
+      #plt.plot(loss_memory)
+      #plt.title("evolution of embed loss")
+      #plt.show()
+      #plt.plot(balance_memory)
+      #plt.title("evolution of embed loss difference")
+      #plt.show()
+      #plt.plot(word_balance_memory)
+      #plt.title("evolution of word loss difference")
+      #plt.show()
+      #plt.plot(norm_memory0)
+      #plt.title("evolution of norm ratio first word")
+      #plt.show()
+      #plt.plot(norm_memory1)
+      #plt.title("evolution of norm ratio second word")
+      #plt.show()
+      #plt.plot(dist_memory0)
+      #plt.title("evolution of distance first word")
+      #plt.show()
+      #plt.plot(dist_memory1)
+      #plt.title("evolution of distance second word")
+      #plt.show()
       emb_adv = clamp(embvar + delta, clip_min, clip_max)
-      return emb_adv, balance_memory, loss_memory, tablist, fool
+      return emb_adv, word_balance_memory, loss_memory, tablist, fool
      
     #pgd attack classes
     class PGDAttack(Attack, LabelMixin):
@@ -705,7 +705,7 @@ def main(): #metavar?
           #delta.data = clean(x,delta.data) #clean
 
 
-          rval, norm_memory, loss_memory, tablist, fool = perturb_iterative_fool_many(
+          rval, word_balance_memory, loss_memory, tablist, fool = perturb_iterative_fool_many(
               x, emb, indlist, y, self.predict, nb_iter=self.nb_iter,
               eps=self.eps, epscand=self.epscand, eps_iter=self.eps_iter,
               loss_fn=self.loss_fn, minimize=self.targeted,
@@ -714,7 +714,7 @@ def main(): #metavar?
               l1_sparsity=self.l1_sparsity,rayon=self.rayon
           )
 
-          return rval.data, norm_memory, loss_memory, tablist, fool 
+          return rval.data, word_balance_memory, loss_memory, tablist, fool 
      
      
     
@@ -749,12 +749,13 @@ def main(): #metavar?
    
     if float(model(x,labels=y)[0])>float(model(x,labels=1-y)[0]): #if model misclassifies
       mf+=1
-      return res_se, res_or,res_lw,res_lg,res_ne,res_cs
+      print("sentence already misclassified")  
+      #return res_se, res_or,res_lw,res_lg,res_ne,res_cs
     else: #model classifies correctly so it makes sense to try to fool it
 
       print("original sentence:")
       print(tokenizer.decode(x[0]))
-      print("is classsified as:")
+      print("is classified as:")
       if bool(y==1):
         print("positive")
       else:
@@ -777,27 +778,33 @@ def main(): #metavar?
       att=PGDAttack(predict2, loss_fn=None, eps=eps, epscand=epscand, nb_iter=nb_iter, #0.02, 3000, 0.001 
                 eps_iter=eps_iter,rayon=rayon, rand_init=True, clip_min=-1., clip_max=1.,
                 ord=ord, l1_sparsity=None, targeted=False)  #0.8#.11#.14                            
-      rval, norm_memory, loss_memory, tablist, fool =att.perturb_fool_many(x,emb,indlist,y)
+      rval, word_balance_memory, loss_memory, tablist, fool =att.perturb_fool_many(x,emb,indlist,y)
+      print(fool)  
 
-      closest_words0list=[]
+      #closest_words0list=[]
       csnlist=[0]*nind
-
-       
-      for u in range(nind):
-        print(str(neigh)+" dictionary neighboors of PGD algo output:")
-        closest_words0=neighboors(rval[0][indlist[u]],neigh)[0]
-        closest_words0list+=[closest_words0] 
-      fool=float(model(replacelist(x,indlist,closest_words0list),labels=1-y)[0])<float(model(replacelist(x,indlist,closest_words0list),labels=y)[0])
-      if fool: 
-        print("indeed it has been fooled")  
-      for u in range(nind):
-        print("csn proximity between original word and advers word:")
-        csnlist[u]=float(torch.matmul(F.normalize(model.roberta.embeddings.word_embeddings(closest_words0list[u]), p=2, dim=0), torch.transpose(F.normalize(model.roberta.embeddings.word_embeddings(x[0][indlist[u]]).unsqueeze(0), p=2, dim=1),0,1)))
-        print(csnlist[u])
+      
+      #for u in range(nind):
+      #  print(str(neigh)+" dictionary neighboors of PGD algo output:")
+      #  closest_words0=neighboors(rval[0][indlist[u]],neigh)[0]
+      #  closest_words0list+=[closest_words0] 
+      #fool=float(model(replacelist(x,indlist,closest_words0list),labels=1-y)[0])<float(model(replacelist(x,indlist,closest_words0list),labels=y)[0])
+      #if fool: 
+      #  print("indeed it has been fooled")  
+      #for u in range(nind):
+      #  print("csn proximity between original word and advers word:")
+      #  csnlist[u]=float(torch.matmul(F.normalize(model.roberta.embeddings.word_embeddings(closest_words0list[u]), p=2, dim=0), torch.transpose(F.normalize(model.roberta.embeddings.word_embeddings(x[0][indlist[u]]).unsqueeze(0), p=2, dim=1),0,1)))
+      #  print(csnlist[u])
         
       for u in range(nind):
-        new_word[u]=tokenizer.decode(closest_words0list[u].unsqueeze(0))
+        new_word[u]=first(tablist[u][-1]) 
+        #new_word[u]=tokenizer.decode(closest_words0list[u].unsqueeze(0))
       print("\n")
+      
+      for u in range(nind):
+        print("csn proximity between original word and advers word:")
+        csnlist[u]=float(torch.matmul(F.normalize(model.roberta.embeddings.word_embeddings(tokenizer.encode(new_word[u]).squeeze(0)), p=2, dim=0), torch.transpose(F.normalize(model.roberta.embeddings.word_embeddings(x[0][indlist[u]]).unsqueeze(0), p=2, dim=1),0,1)))
+        print(csnlist[u])
       
       res_se=tokenizer.decode(x[0])
       res_or=orig_wordlist
@@ -805,12 +812,18 @@ def main(): #metavar?
       res_lg=lenlist(tablist) 
       res_ne=new_word
       res_cs=csnlist
+      print(res_se)
+      print(res_or)
+      print(res_lw)
+      print(res_lg)
+      print(res_ne)
+      print(res_cs)
 
     t1 = time()
 
     print('function takes %f' %(t1-t0))
 
-    return res_se, res_or,res_lw,res_lg,res_ne,res_cs
+    #return res_se, res_or,res_lw,res_lg,res_ne,res_cs
     ###
 
 
