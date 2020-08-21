@@ -350,7 +350,6 @@ def main(): #metavar?
      padding_idx=1
      input_shape = x.size()
      seq_length = input_shape[1]
-     device = torch.device("cuda") 
      position_ids = create_position_ids_from_input_ids(x.to('cpu'), 1).to(device) 
      token_type_ids=torch.zeros(input_shape, dtype=torch.long, device=device)
 
