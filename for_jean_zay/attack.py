@@ -731,7 +731,7 @@ def main(): #metavar?
     for iid,indlist in zip(l1,l2):
      for eps_iter in [0.5]:
       eps=0.3
-      epscand=0.05
+      epscand=0.04
       nb_iter=20000
       ord=np.inf
       rayon=0.4
