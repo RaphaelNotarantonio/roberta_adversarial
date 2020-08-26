@@ -333,7 +333,7 @@ def main(): #metavar?
      map_location= 'cpu'
       
     #load saved model (which is finetuned roberta)
-    model.load_state_dict(torch.load('./roberta_finetuned.pt', map_location=map_location))
+    model.load_state_dict(torch.load('./roberta_finetunedbeta.pt', map_location=map_location))
     model.eval()
   
 
@@ -484,25 +484,26 @@ def main(): #metavar?
                 #norm_memory0[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[0]])
                 #norm_memory1[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[1]])
                 delta.data = tozero(delta.data,indlistvar) 
-                adverslist=[]
-                for t in range(nb):
-                  advers, nb_vois =neighboors_np_dens_cand((embvar+delta)[0][indlistvar[t]],rayon,candid[t])
-                  advers=int(advers[0]) 
-                  advers=torch.tensor(convers[t][advers])
-                  if len(tablist[t])==0:
-                    tablist[t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
-                  elif not(first(tablist[t][-1])==tokenizer.decode(advers.unsqueeze(0))): #we could also clean final list instead
-                    tablist[t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
-                  adverslist+=[advers]
-                #dist_memory0[ii]=torch.norm((embvar+delta)[0][indlistvar[0]]-predict1(adverslist[0].unsqueeze(0).to(device))[0])
-                #dist_memory1[ii]=torch.norm((embvar+delta)[0][indlistvar[1]]-predict1(adverslist[1].unsqueeze(0).to(device))[0])
-                word_balance_memory[ii]=float(model(replacelist(xvar,indlistvar,adverslist),labels=1-yvar)[0])-float(model(replacelist(xvar,indlistvar,adverslist),labels=yvar)[0])
-                if word_balance_memory[ii]<0:
-                  fool=True 
-                  #print("fooled by :")
-                  #print(adverslist)   
-                  #print("\n")         
-              #specifier la vitesse de chaque indice? deux listes en input, une eps-iter une indice? Le grad répartit déjà le poids:: donc non.
+                if (ii%20)==0:
+                 adverslist=[]
+                 for t in range(nb):
+                   advers, nb_vois =neighboors_np_dens_cand((embvar+delta)[0][indlistvar[t]],rayon,candid[t])
+                   advers=int(advers[0]) 
+                   advers=torch.tensor(convers[t][advers])
+                   if len(tablist[t])==0:
+                     tablist[t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
+                   elif not(first(tablist[t][-1])==tokenizer.decode(advers.unsqueeze(0))): #we could also clean final list instead
+                     tablist[t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
+                   adverslist+=[advers]
+                 #dist_memory0[ii]=torch.norm((embvar+delta)[0][indlistvar[0]]-predict1(adverslist[0].unsqueeze(0).to(device))[0])
+                 #dist_memory1[ii]=torch.norm((embvar+delta)[0][indlistvar[1]]-predict1(adverslist[1].unsqueeze(0).to(device))[0])
+                 word_balance_memory[ii]=float(model(replacelist(xvar,indlistvar,adverslist),labels=1-yvar)[0])-float(model(replacelist(xvar,indlistvar,adverslist),labels=yvar)[0])
+                 if word_balance_memory[ii]<0:
+                   fool=True 
+                   #print("fooled by :")
+                   #print(adverslist)   
+                   #print("\n")         
+               #specifier la vitesse de chaque indice? deux listes en input, une eps-iter une indice? Le grad répartit déjà le poids:: donc non.
 
           elif ord == 0: 
               grad = delta.grad.data 
@@ -516,24 +517,25 @@ def main(): #metavar?
                 #norm_memory0[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[0]])
                 #norm_memory1[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[1]])
                 delta.data = tozero(delta.data,indlistvar) 
-                adverslist=[]
-                for t in range(nb):
-                  advers, nb_vois =neighboors_np_dens_cand((embvar+delta)[0][indlistvar[t]],rayon,candid[t])
-                  advers=int(advers[0]) 
-                  advers=torch.tensor(convers[t][advers])
-                  if len(tablist[t])==0:
-                    tablist[t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
-                  elif not(first(tablist[t][-1])==tokenizer.decode(advers.unsqueeze(0))): #we could also clean final list instead
-                    tablist[t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
-                  adverslist+=[advers]
-                #dist_memory0[ii]=torch.norm((embvar+delta)[0][indlistvar[0]]-predict1(adverslist[0].unsqueeze(0).to(device))[0])
-                #dist_memory1[ii]=torch.norm((embvar+delta)[0][indlistvar[1]]-predict1(adverslist[1].unsqueeze(0).to(device))[0])
-                word_balance_memory[ii]=float(model(replacelist(xvar,indlistvar,adverslist),labels=1-yvar)[0])-float(model(replacelist(xvar,indlistvar,adverslist),labels=yvar)[0])
-                if word_balance_memory[ii]<0:
-                  fool=True 
-                  #print("fooled by :")
-                  #print(adverslist)   
-                  #print("\n")           
+                if (ii%20)==0:
+                 adverslist=[]
+                 for t in range(nb):
+                   advers, nb_vois =neighboors_np_dens_cand((embvar+delta)[0][indlistvar[t]],rayon,candid[t])
+                   advers=int(advers[0]) 
+                   advers=torch.tensor(convers[t][advers])
+                   if len(tablist[t])==0:
+                     tablist[t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
+                   elif not(first(tablist[t][-1])==tokenizer.decode(advers.unsqueeze(0))): #we could also clean final list instead
+                     tablist[t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
+                   adverslist+=[advers]
+                 #dist_memory0[ii]=torch.norm((embvar+delta)[0][indlistvar[0]]-predict1(adverslist[0].unsqueeze(0).to(device))[0])
+                 #dist_memory1[ii]=torch.norm((embvar+delta)[0][indlistvar[1]]-predict1(adverslist[1].unsqueeze(0).to(device))[0])
+                 word_balance_memory[ii]=float(model(replacelist(xvar,indlistvar,adverslist),labels=1-yvar)[0])-float(model(replacelist(xvar,indlistvar,adverslist),labels=yvar)[0])
+                 if word_balance_memory[ii]<0:
+                   fool=True 
+                   #print("fooled by :")
+                   #print(adverslist)   
+                   #print("\n")           
 
           elif ord == 2: #plutôt ça non?
               grad = delta.grad.data
@@ -548,24 +550,25 @@ def main(): #metavar?
                 #norm_memory0[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[0]])
                 #norm_memory1[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[1]])
                 delta.data = tozero(delta.data,indlistvar) 
-                adverslist=[]
-                for t in range(nb):
-                  advers, nb_vois =neighboors_np_dens_cand((embvar+delta)[0][indlistvar[t]],rayon,candid[t])
-                  advers=int(advers[0]) 
-                  advers=torch.tensor(convers[t][advers])
-                  if len(tablist[t])==0:
-                    tablist[t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
-                  elif not(first(tablist[t][-1])==tokenizer.decode(advers.unsqueeze(0))): #we could also clean final list instead
-                    tablist[t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
-                  adverslist+=[advers]
-                #dist_memory0[ii]=torch.norm((embvar+delta)[0][indlistvar[0]]-predict1(adverslist[0].unsqueeze(0).to(device))[0])
-                #dist_memory1[ii]=torch.norm((embvar+delta)[0][indlistvar[1]]-predict1(adverslist[1].unsqueeze(0).to(device))[0])
-                word_balance_memory[ii]=float(model(replacelist(xvar,indlistvar,adverslist),labels=1-yvar)[0])-float(model(replacelist(xvar,indlistvar,adverslist),labels=yvar)[0])
-                if word_balance_memory[ii]<0:
-                  fool=True 
-                  #print("fooled by :")
-                  #print(adverslist)   
-                  #print("\n")    
+                if (ii%20)==0:
+                 adverslist=[]
+                 for t in range(nb):
+                   advers, nb_vois =neighboors_np_dens_cand((embvar+delta)[0][indlistvar[t]],rayon,candid[t])
+                   advers=int(advers[0]) 
+                   advers=torch.tensor(convers[t][advers])
+                   if len(tablist[t])==0:
+                     tablist[t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
+                   elif not(first(tablist[t][-1])==tokenizer.decode(advers.unsqueeze(0))): #we could also clean final list instead
+                     tablist[t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
+                   adverslist+=[advers]
+                 #dist_memory0[ii]=torch.norm((embvar+delta)[0][indlistvar[0]]-predict1(adverslist[0].unsqueeze(0).to(device))[0])
+                 #dist_memory1[ii]=torch.norm((embvar+delta)[0][indlistvar[1]]-predict1(adverslist[1].unsqueeze(0).to(device))[0])
+                 word_balance_memory[ii]=float(model(replacelist(xvar,indlistvar,adverslist),labels=1-yvar)[0])-float(model(replacelist(xvar,indlistvar,adverslist),labels=yvar)[0])
+                 if word_balance_memory[ii]<0:
+                   fool=True 
+                   #print("fooled by :")
+                   #print(adverslist)   
+                   #print("\n")    
 
           elif ord == 1:
               grad = delta.grad.data
@@ -721,17 +724,19 @@ def main(): #metavar?
     
     ###
     
-    t0 = time()
     
-    l1=[2,3]
-    l2=[[1,2],[1,3]]
+    
+    l1=[0]
+    l2=[[5,8]]
     for iid,indlist in zip(l1,l2):
-     for ord in [np.inf,2]:
+     for eps_iter in [5.]:
       eps=0.3
-      epscand=0.03
-      nb_iter=1500
-      eps_iter=0.5
+      epscand=0.05
+      nb_iter=200
+      ord=np.inf
       rayon=0.4
+      
+      t0 = time()
 
 
       nind=len(indlist)
@@ -822,14 +827,15 @@ def main(): #metavar?
          res_lg+=[lenlist(tablist)] 
          res_ne+=[new_word]
          res_cs+=[csnlist]
+         
+        t1 = time()
+        print('function takes %f' %(t1-t0))
 
     df = pd.DataFrame(list(zip(res_se, res_or,res_lw,res_lg,res_ne,res_cs)), 
                columns =['sentence', 'original word', 'not-fooling words ( = path)', 'path length', 'new word','csn similarity']) 
-    t1 = time()
-
-    print('function takes %f' %(t1-t0))
     
-    df.to_csv('results.csv', index = False)  #r
+    
+    df.to_csv('results/results.csv', index = False)  #r
    
 
     #return res_se, res_or,res_lw,res_lg,res_ne,res_cs
