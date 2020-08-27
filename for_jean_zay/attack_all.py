@@ -377,7 +377,7 @@ def main():
                 #norm_memory0[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[0]])
                 #norm_memory1[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[1]])
                 delta.data = tozero(delta.data,indlistvar) 
-                if (ii%400)==0:
+                if (ii%300)==0:
                  adverslist=[]
                  for t in range(nb):
                    advers, nb_vois =neighboors_np_dens_cand((embvar+delta)[0][indlistvar[t]],rayon,candid[t])
@@ -410,7 +410,7 @@ def main():
                 #norm_memory0[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[0]])
                 #norm_memory1[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[1]])
                 delta.data = tozero(delta.data,indlistvar) 
-                if (ii%400)==0:
+                if (ii%300)==0:
                  adverslist=[]
                  for t in range(nb):
                    advers, nb_vois =neighboors_np_dens_cand((embvar+delta)[0][indlistvar[t]],rayon,candid[t])
@@ -443,7 +443,7 @@ def main():
                 #norm_memory0[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[0]])
                 #norm_memory1[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[1]])
                 delta.data = tozero(delta.data,indlistvar) 
-                if (ii%400)==0:
+                if (ii%300)==0:
                  adverslist=[]
                  for t in range(nb):
                    advers, nb_vois =neighboors_np_dens_cand((embvar+delta)[0][indlistvar[t]],rayon,candid[t])
@@ -625,12 +625,12 @@ def main():
     res_ne=[] 
     res_cs=[] 
     
-    l1=range(5)
+    l1=range(30)
     for iid in l1:
-     for eps_iter in [0.5]:
+     for eps_iter in [1.]:
       eps=0.3
-      epscand=0.3 
-      nb_iter=10000
+      epscand=0.5
+      nb_iter=6001
       ord=np.inf
       rayon=1.
       
