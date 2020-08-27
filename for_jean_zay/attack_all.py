@@ -390,9 +390,10 @@ def main(): #metavar?
       cosine_similarity = torch.matmul(normed_emb_word, torch.transpose(candidates,0,1))
       calc, closest_words = torch.topk(cosine_similarity,1,dim=0)
       compteur=0 
-      for t in range(len(cosine_similarity)): #evitez de faire DEUX boucles .
-        if cosine_similarity[t]>rayon:
-          compteur+=1 #densité seulement dans l'intersection des possibles candidats (!)
+      if rayon<1.:
+       for t in range(len(cosine_similarity)): #evitez de faire DEUX boucles .
+         if cosine_similarity[t]>rayon:
+           compteur+=1 #densité seulement dans l'intersection des possibles candidats (!)
       return closest_words, compteur
     
     
@@ -733,7 +734,7 @@ def main(): #metavar?
       epscand=0.3 
       nb_iter=5000
       ord=np.inf
-      rayon=0.3
+      rayon=1.
       
       t0 = time()
    
