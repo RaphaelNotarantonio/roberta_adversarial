@@ -726,26 +726,24 @@ def main(): #metavar?
     ###
     
     
+    res_se=[] 
+    res_or=[] 
+    res_lw=[] 
+    res_lg=[] 
+    res_ne=[] 
+    res_cs=[] 
     
     l1=range(5)
     for iid in l1:
      for eps_iter in [0.5]:
       eps=0.3
       epscand=0.3 
-      nb_iter=5000
+      nb_iter=10000
       ord=np.inf
       rayon=1.
       
       t0 = time()
-   
-
-      res_se=[] 
-      res_or=[] 
-      res_lw=[] 
-      res_lg=[] 
-      res_ne=[] 
-      res_cs=[] 
-
+      
       mf=0
 
       x = input_ids[iid].unsqueeze(0).to(device)
