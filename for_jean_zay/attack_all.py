@@ -139,115 +139,7 @@ def projection_simplex_sort(v, z=1):
     return w
 
 
-# algorithm to attack a sentence
-def whole_study(iid,indlist,eps=0.03, epscand=0.03, nb_iter=1000,eps_iter=0.5,rayon=0.3,ord=0):
-
-    t0 = time()
-
-    nind=len(indlist)
-  
-    res_se=None 
-    res_or=None 
-    res_lw=None 
-    res_lg=None 
-    res_ne=None 
-    res_cs=None 
-
-    mf=0
-
-    x = input_ids[iid].unsqueeze(0).to(device)
-    y = labels[iid].unsqueeze(0).to(device)
-    neigh=3
-   
-    if float(model(x,labels=y)[0])>float(model(x,labels=1-y)[0]): #if model misclassifies
-      mf+=1
-      return res_se, res_or,res_lw,res_lg,res_ne,res_cs
-    else: #model classifies correctly so it makes sense to try to fool it
-
-      print("original sentence:")
-      print(tokenizer.decode(x[0]))
-      print("is classsified as:")
-      if bool(y==1):
-        print("positive")
-      else:
-        print("negative")
-      print("\n")
-
-      orig_wordlist=[]
-      for u in range(nind):
-        print("let's change word number"+str(indlist[u])+"which is:")
-        orig_word=tokenizer.decode(x[0][indlist[u]].unsqueeze(0))
-        print(orig_word)
-        orig_wordlist+=[orig_word]
-      print("\n")
-
-      emb=predict1(x)
-       
-      new_word=['']*nind  
-      print("Does our PGD output's first neighboor fool model?:")
-        #0.04 .08  .12 pas vraiment assez, et 0.5 trop
-      att=PGDAttack(predict2, loss_fn=None, eps=eps, epscand=epscand, nb_iter=nb_iter, #0.02, 3000, 0.001 
-                eps_iter=eps_iter,rayon=rayon, rand_init=True, clip_min=-1., clip_max=1.,
-                ord=ord, l1_sparsity=None, targeted=False)  #0.8#.11#.14                            
-      rval, norm_memory, loss_memory, tablist, fool =att.perturb_fool_many(x,emb,indlist,y)
-
-      closest_words0list=[]
-      csnlist=[0]*nind
-
-       
-      for u in range(nind):
-        print(str(neigh)+" dictionary neighboors of PGD algo output:")
-        closest_words0=neighboors(rval[0][indlist[u]],neigh)[0]
-        closest_words0list+=[closest_words0] 
-      fool=float(model(replacelist(x,indlist,closest_words0list),labels=1-y)[0])<float(model(replacelist(x,indlist,closest_words0list),labels=y)[0])
-      if fool: 
-        print("indeed it has been fooled")  
-      for u in range(nind):
-        print("csn proximity between original word and advers word:")
-        csnlist[u]=float(torch.matmul(F.normalize(model.roberta.embeddings.word_embeddings(closest_words0list[u]), p=2, dim=0), torch.transpose(F.normalize(model.roberta.embeddings.word_embeddings(x[0][indlist[u]]).unsqueeze(0), p=2, dim=1),0,1)))
-        print(csnlist[u])
-        
-      for u in range(nind):
-        new_word[u]=tokenizer.decode(closest_words0list[u].unsqueeze(0))
-      print("\n")
-      
-      res_se=tokenizer.decode(x[0])
-      res_or=orig_wordlist
-      res_lw=tablist
-      res_lg=lenlist(tablist) 
-      res_ne=new_word
-      res_cs=csnlist
-
-    t1 = time()
-
-    print('function takes %f' %(t1-t0))
-
-    return res_se, res_or,res_lw,res_lg,res_ne,res_cs
-
-
-
-
-def main(): #metavar?
-  # attack algorithm settings
-    #parser = argparse.ArgumentParser(description='pgd attack')
-    #parser.add_argument('--iid', type=int, default=0, metavar='N',
-    #                    help='iid number of the sentence to be attacked')
-    #parser.add_argument('--indlist', type=list, default=[5,8], metavar='N',
-    #                    help='list of the indexes of the words to be attacked')
-    #parser.add_argument('--eps', type=float, default=0.5, metavar='N',
-    #                    help='maximum distance between new word and original word')
-    #parser.add_argument('--epscand', type=float, default=0.05, metavar='LR',
-    #                    help='minimum cosinus similarity between new word and original word')
-    #parser.add_argument('--nb_iter', type=int, default=100, metavar='M',
-    #                    help='maximum number of PGD iterations')
-    #parser.add_argument('--eps_iter', type=float, default=0.05, metavar='M',
-    #                    help='iteration length for pgd')
-    #parser.add_argument('--rayon', type=float, default=0.3, metavar='S',
-    #                    help='density information around each word')
-    #parser.add_argument('--ord', type=int, default=np.inf, metavar='N',
-    #                    help='norm choice')
-    #args = parser.parse_args()
-    
+def main(): 
     
     #load encoder
     tokenizer = RobertaTokenizer.from_pretrained('roberta-base') 
@@ -294,8 +186,8 @@ def main(): #metavar?
     labels = torch.tensor(labels)
 
     # Print sentence 0, now as a list of IDs.
-    print('Original: ', sentences[0])
-    print('Token IDs:', input_ids[0])
+    #print('Original: ', sentences[0])
+    #print('Token IDs:', input_ids[0])
 
 
     # If there's a GPU available...
@@ -743,6 +635,7 @@ def main(): #metavar?
       rayon=1.
       
       t0 = time()
+      print("\n")
       
       mf=0
 
@@ -770,11 +663,11 @@ def main(): #metavar?
 
         orig_wordlist=[]
         for u in range(nind):
-          print("let's change word number"+str(indlist[u])+"which is:")
+          #print("let's change word number"+str(indlist[u])+"which is:")
           orig_word=tokenizer.decode(x[0][indlist[u]].unsqueeze(0))
-          print(orig_word)
+          #print(orig_word)
           orig_wordlist+=[orig_word]
-        print("\n")
+        #print("\n")
 
         emb=predict1(x)
 
@@ -808,9 +701,9 @@ def main(): #metavar?
         print("\n")
 
         for u in range(nind):
-          print("csn proximity between original word and advers word:")
+          #print("csn proximity between original word and advers word:")
           csnlist[u]=float(torch.matmul(F.normalize(model.roberta.embeddings.word_embeddings(torch.tensor(tokenizer.encode(new_word[u])[1]).to(device)), p=2, dim=0), torch.transpose(F.normalize(model.roberta.embeddings.word_embeddings(x[0][indlist[u]]).unsqueeze(0), p=2, dim=1),0,1)))
-          print(csnlist[u])
+          #print(csnlist[u])
         
         print(tokenizer.decode(x[0]))
         print(orig_wordlist)
