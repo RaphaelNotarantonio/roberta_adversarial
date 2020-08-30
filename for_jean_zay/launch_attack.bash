@@ -17,4 +17,4 @@ module purge
 module load pytorch-gpu/py3/1.6.0
 
 
-srun python ./attack.py  --iid ${'0'} & --indlist ${'[5,8]'} & --eps ${'0.03'} & --epscand ${'0.03'} & --nb_iter ${'100'} & --eps_iter ${'0.5'} & --rayon ${'0.4'} & --ord ${'np.inf'} &
+srun python ./attack.py   
