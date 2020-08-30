@@ -29,6 +29,7 @@ from advertorch.attacks.base import LabelMixin
 from advertorch.attacks.utils import rand_init_delta
 
 #required functions:
+
 def sentlong(x): #real length of an input_id sentence 
   compteur = 0
   while compteur<len(x) and x[compteur]!=2:
@@ -43,12 +44,12 @@ def clean(x,emb): #zero all embeddings at indexes beyond the real sentence lengh
       emb[b,i,:]=torch.zeros(size[2]) #embedding size
   return emb
 
-def tozero(tens,ind):
+def tozero(tens,ind): #zero all indexes except ind
   tens2=torch.zeros_like(tens)
   tens2[0][ind]=tens[0][ind]
   return tens2
 
-def tozerolist(tens,indlist):
+def tozerolist(tens,indlist): #zero all indexes except indlist
   nb=len(indlist)
   tens3=torch.zeros_like(tens)
   for k in range(nb):
@@ -57,13 +58,13 @@ def tozerolist(tens,indlist):
     tens3+=tens2
   return tens3 
 
-def my_proj_all(emb2,emb,indlist,eps):  #en fait ça va dépendre de ma norme à plusieurs mots. max des cs?
+def my_proj_all(emb2,emb,indlist,eps):  #project all dim en cosim norm
   emb3=emb2.clone() 
   for t in indlist:
     emb3[t]=my_proj(emb2[t],emb[t],eps)
   return emb3 # size = nombre de mots x 768 
 
-def my_proj(xt,x0,eps): # 768 #probablement tout normaliser
+def my_proj(xt,x0,eps): #project one dim en cosim norm
   nrm = float(torch.norm(x0))
   scal = float(torch.dot(xt,x0))
 
@@ -100,7 +101,7 @@ def create_position_ids_from_input_ids(input_ids, padding_idx):
     incremental_indices = torch.cumsum(mask, dim=1).type_as(mask) * mask
     return incremental_indices.long() + padding_idx
 
-def lenlist(l):
+def lenlist(l): #return list of sizes from a list of list
   res=[]
   for li in l:
     res+=[len(li)]
@@ -173,7 +174,7 @@ def main():
       encoded_dict = tokenizer.encode(
                             sent,                      # Sentence to encode.
                             add_special_tokens = True, # Add '[CLS]' and '[SEP]'
-                            max_length = 64,           # Pad & truncate all sentences.
+                            max_length = max_len+10,           # Pad & truncate all sentences.
                             truncation=True,  
                             pad_to_max_length = True,
                             return_tensors = 'pt',     # Return pytorch tensors.
@@ -210,7 +211,7 @@ def main():
     # Load BertForSequenceClassification, the pretrained BERT model with a single 
     # linear classification layer on top. 
     model = RobertaForSequenceClassification.from_pretrained(
-        "./my_pretrained", # Use the 12-layer BERT model, with an uncased vocab.
+        "./my_pretrained", # Use the 12-layer BERT model, with an uncased vocab.  #please rather use "roberta-base"
         num_labels = 2, # The number of output labels--2 for binary classification.
                        # You can increase this for multi-class tasks.   
         output_attentions = False, # Whether the model returns attentions weights.
@@ -229,7 +230,6 @@ def main():
     model.eval()
   
 
-    #whole_study(args.iid,args.indlist,eps=args.eps,epscand=args.epscand,nb_iter=args.nb_iter,eps_iter=args.eps_iter,rayon=args.rayon,ord=args.ord)
     
     #define the two forward functions (we cut our model in two parts)
     def predict1(x): #ex: x = input_ids[0].unsqueeze(0).to(device)
@@ -267,7 +267,7 @@ def main():
      return out
     
     
-    #find numb neighboors of embedd from the embedding dictionary
+    #find numb neighboors of embedd among the embedding dictionary
     def neighboors(embedd,numb):
       emb_matrix = model.roberta.embeddings.word_embeddings.weight
       normed_emb_matrix=F.normalize(emb_matrix, p=2, dim=1) 
@@ -277,15 +277,16 @@ def main():
       print(tokenizer.decode(closest_words))
       return closest_words
 
-    def neighboors_np_dens_cand(embedd,rayon,candidates): #advers=neighboors_np((embvar+delta)[0][indlistvar[t]],1)[0]
+    #find numb neighboors of embedd among candidates
+    def neighboors_np_dens_cand(embedd,rayon,candidates):  
       normed_emb_word=F.normalize(embedd, p=2, dim=0) 
       cosine_similarity = torch.matmul(normed_emb_word, torch.transpose(candidates,0,1))
       calc, closest_words = torch.topk(cosine_similarity,1,dim=0)
       compteur=0 
       if rayon<1.:
-       for t in range(len(cosine_similarity)): #evitez de faire DEUX boucles .
+       for t in range(len(cosine_similarity)):  
          if cosine_similarity[t]>rayon:
-           compteur+=1 #densité seulement dans l'intersection des possibles candidats (!)
+           compteur+=1 #calculate the density around embedd, among all possible candidates
       return closest_words, compteur
     
     
@@ -315,20 +316,16 @@ def main():
       :return: tensor containing the perturbed input.
       """
 
+      #will contain all words encountered during PGD
       nb=len(indlistvar)
       tablist=[]
       for t in range(nb):
         tablist+=[[]]
       fool=False
 
-      #contain results
+      #contain each loss on embed and each difference of loss on word nearest neighboor
       loss_memory=np.zeros((nb_iter,))
       word_balance_memory=np.zeros((nb_iter,))
-      #balance_memory=np.zeros((nb_iter,))
-      #norm_memory0=np.zeros((nb_iter,))
-      #norm_memory1=np.zeros((nb_iter,))
-      #dist_memory0=np.zeros((nb_iter,))
-      #dist_memory1=np.zeros((nb_iter,))
 
       candid=[torch.empty(0)]*nb
       convers=[[]]*nb
@@ -355,7 +352,8 @@ def main():
           delta = delta_init
       else:
           delta = torch.zeros_like(embvar)
-
+ 
+      #PGD
       delta.requires_grad_()
       ii=0
       while ii<nb_iter and not(fool):
@@ -374,8 +372,6 @@ def main():
               delta.data = clamp(embvar.data + delta.data, clip_min, clip_max #à retirer?
                                  ) - embvar.data
               with torch.no_grad():  
-                #norm_memory0[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[0]])
-                #norm_memory1[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[1]])
                 delta.data = tozero(delta.data,indlistvar) 
                 if (ii%300)==0:
                  adverslist=[]
@@ -385,30 +381,21 @@ def main():
                    advers=torch.tensor(convers[t][advers])
                    if len(tablist[t])==0:
                      tablist[t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
-                   elif not(first(tablist[t][-1])==tokenizer.decode(advers.unsqueeze(0))): #we could also clean final list instead
+                   elif not(first(tablist[t][-1])==tokenizer.decode(advers.unsqueeze(0))): 
                      tablist[t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
                    adverslist+=[advers]
-                 #dist_memory0[ii]=torch.norm((embvar+delta)[0][indlistvar[0]]-predict1(adverslist[0].unsqueeze(0).to(device))[0])
-                 #dist_memory1[ii]=torch.norm((embvar+delta)[0][indlistvar[1]]-predict1(adverslist[1].unsqueeze(0).to(device))[0])
                  word_balance_memory[ii]=float(model(replacelist(xvar,indlistvar,adverslist),labels=1-yvar)[0])-float(model(replacelist(xvar,indlistvar,adverslist),labels=yvar)[0])
                  if word_balance_memory[ii]<0:
-                   fool=True 
-                   #print("fooled by :")
-                   #print(adverslist)   
-                   #print("\n")         
-               #specifier la vitesse de chaque indice? deux listes en input, une eps-iter une indice? Le grad répartit déjà le poids:: donc non.
+                   fool=True          
 
           elif ord == 0: 
               grad = delta.grad.data 
-              grad = tozero(grad,indlistvar) #le [0] est compris dans tozero
-              #grad[0] = my_proj_all(grad[0],embvar[0],indlistvar,eps) #on projette le gradient aussi
+              grad = tozero(grad,indlistvar)   
               delta.data = delta.data + batch_multiply(eps_iter, grad)
               delta.data[0] = my_proj_all(embvar.data[0]+delta.data[0],embvar[0],indlistvar,eps) -embvar.data[0]
               delta.data = clamp(embvar.data + delta.data, clip_min, clip_max
                                  ) - embvar.data #à virer je pense
-              with torch.no_grad():
-                #norm_memory0[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[0]])
-                #norm_memory1[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[1]])
+              with torch.no_grad(): 
                 delta.data = tozero(delta.data,indlistvar) 
                 if (ii%300)==0:
                  adverslist=[]
@@ -418,19 +405,14 @@ def main():
                    advers=torch.tensor(convers[t][advers])
                    if len(tablist[t])==0:
                      tablist[t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
-                   elif not(first(tablist[t][-1])==tokenizer.decode(advers.unsqueeze(0))): #we could also clean final list instead
+                   elif not(first(tablist[t][-1])==tokenizer.decode(advers.unsqueeze(0))):  
                      tablist[t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
-                   adverslist+=[advers]
-                 #dist_memory0[ii]=torch.norm((embvar+delta)[0][indlistvar[0]]-predict1(adverslist[0].unsqueeze(0).to(device))[0])
-                 #dist_memory1[ii]=torch.norm((embvar+delta)[0][indlistvar[1]]-predict1(adverslist[1].unsqueeze(0).to(device))[0])
+                   adverslist+=[advers] 
                  word_balance_memory[ii]=float(model(replacelist(xvar,indlistvar,adverslist),labels=1-yvar)[0])-float(model(replacelist(xvar,indlistvar,adverslist),labels=yvar)[0])
                  if word_balance_memory[ii]<0:
-                   fool=True 
-                   #print("fooled by :")
-                   #print(adverslist)   
-                   #print("\n")           
+                   fool=True            
 
-          elif ord == 2: #plutôt ça non?
+          elif ord == 2:  
               grad = delta.grad.data
               grad = tozero(grad,indlistvar) 
               grad = normalize_by_pnorm(grad)
@@ -439,9 +421,7 @@ def main():
                                  ) - embvar.data
               if eps is not None:
                   delta.data = clamp_by_pnorm(delta.data, ord, eps)
-              with torch.no_grad():
-                #norm_memory0[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[0]])
-                #norm_memory1[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[1]])
+              with torch.no_grad(): 
                 delta.data = tozero(delta.data,indlistvar) 
                 if (ii%300)==0:
                  adverslist=[]
@@ -451,22 +431,16 @@ def main():
                    advers=torch.tensor(convers[t][advers])
                    if len(tablist[t])==0:
                      tablist[t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
-                   elif not(first(tablist[t][-1])==tokenizer.decode(advers.unsqueeze(0))): #we could also clean final list instead
+                   elif not(first(tablist[t][-1])==tokenizer.decode(advers.unsqueeze(0))):  
                      tablist[t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
-                   adverslist+=[advers]
-                 #dist_memory0[ii]=torch.norm((embvar+delta)[0][indlistvar[0]]-predict1(adverslist[0].unsqueeze(0).to(device))[0])
-                 #dist_memory1[ii]=torch.norm((embvar+delta)[0][indlistvar[1]]-predict1(adverslist[1].unsqueeze(0).to(device))[0])
+                   adverslist+=[advers] 
                  word_balance_memory[ii]=float(model(replacelist(xvar,indlistvar,adverslist),labels=1-yvar)[0])-float(model(replacelist(xvar,indlistvar,adverslist),labels=yvar)[0])
                  if word_balance_memory[ii]<0:
-                   fool=True 
-                   #print("fooled by :")
-                   #print(adverslist)   
-                   #print("\n")    
+                   fool=True     
 
           elif ord == 1:
               grad = delta.grad.data
-              grad_sign = tozero(grad_sign,indvar)
-              #clean(xvar,grad)  #clean
+              grad_sign = tozero(grad_sign,indvar) 
               abs_grad = torch.abs(grad)
 
               batch_size = grad.size(0)
@@ -494,9 +468,7 @@ def main():
               raise NotImplementedError(error)
           delta.grad.data.zero_()
           with torch.no_grad():
-            loss_memory[ii]= loss 
-            #loss2 = loss_fn(outputs, 1-yvar)
-            #balance_memory[ii]=loss2-loss
+            loss_memory[ii]= loss  
 
 
           ii+=1
@@ -504,25 +476,10 @@ def main():
 
       #plt.plot(loss_memory)
       #plt.title("evolution of embed loss")
-      #plt.show()
-      #plt.plot(balance_memory)
-      #plt.title("evolution of embed loss difference")
-      #plt.show()
+      #plt.show() 
       #plt.plot(word_balance_memory)
       #plt.title("evolution of word loss difference")
-      #plt.show()
-      #plt.plot(norm_memory0)
-      #plt.title("evolution of norm ratio first word")
-      #plt.show()
-      #plt.plot(norm_memory1)
-      #plt.title("evolution of norm ratio second word")
-      #plt.show()
-      #plt.plot(dist_memory0)
-      #plt.title("evolution of distance first word")
-      #plt.show()
-      #plt.plot(dist_memory1)
-      #plt.title("evolution of distance second word")
-      #plt.show()
+      #plt.show() 
       emb_adv = clamp(embvar + delta, clip_min, clip_max)
       return emb_adv, word_balance_memory, loss_memory, tablist, fool
      
@@ -598,8 +555,6 @@ def main():
               delta[0]=my_proj_all(emb[0]+delta[0],emb[0],indlist,self.eps)-emb[0]
 
 
-          #delta.data = clean(x,delta.data) #clean
-
 
           rval, word_balance_memory, loss_memory, tablist, fool = perturb_iterative_fool_many(
               x, emb, indlist, y, self.predict, nb_iter=self.nb_iter,
@@ -615,7 +570,7 @@ def main():
      
     
     
-    ###
+    ###here we actually attack all sentences
     
     
     res_se=[] 
@@ -628,11 +583,11 @@ def main():
     l1=range(30)
     for iid in l1:
      for eps_iter in [1.]:
-      eps=0.3
-      epscand=0.5
+      eps=0.3 #embeddings distance with norm ord
+      epscand=0.5 #fix nb of candidates according to cosim
       nb_iter=6001
-      ord=np.inf
-      rayon=1.
+      ord=np.inf #norm choice
+      rayon=1. #density search
       
       t0 = time()
       print("\n")
@@ -672,38 +627,23 @@ def main():
         emb=predict1(x)
 
         new_word=['']*nind  
-        print("Does our PGD output's first neighboor fool model?:")
-          #0.04 .08  .12 pas vraiment assez, et 0.5 trop
-        att=PGDAttack(predict2, loss_fn=None, eps=eps, epscand=epscand, nb_iter=nb_iter, #0.02, 3000, 0.001 
+        print("Does our PGD output's first neighboor fool model?:") 
+        att=PGDAttack(predict2, loss_fn=None, eps=eps, epscand=epscand, nb_iter=nb_iter, 
                   eps_iter=eps_iter,rayon=rayon, rand_init=True, clip_min=-1., clip_max=1.,
-                  ord=ord, l1_sparsity=None, targeted=False)  #0.8#.11#.14                            
+                  ord=ord, l1_sparsity=None, targeted=False)                   
         rval, word_balance_memory, loss_memory, tablist, fool =att.perturb_fool_many(x,emb,indlist,y)
         print(fool)  
-
-        #closest_words0list=[]
+ 
         csnlist=[0]*nind
-
-        #for u in range(nind):
-        #  print(str(neigh)+" dictionary neighboors of PGD algo output:")
-        #  closest_words0=neighboors(rval[0][indlist[u]],neigh)[0]
-        #  closest_words0list+=[closest_words0] 
-        #fool=float(model(replacelist(x,indlist,closest_words0list),labels=1-y)[0])<float(model(replacelist(x,indlist,closest_words0list),labels=y)[0])
-        #if fool: 
-        #  print("indeed it has been fooled")  
-        #for u in range(nind):
-        #  print("csn proximity between original word and advers word:")
-        #  csnlist[u]=float(torch.matmul(F.normalize(model.roberta.embeddings.word_embeddings(closest_words0list[u]), p=2, dim=0), torch.transpose(F.normalize(model.roberta.embeddings.word_embeddings(x[0][indlist[u]]).unsqueeze(0), p=2, dim=1),0,1)))
-        #  print(csnlist[u])
+ 
 
         for u in range(nind):
           new_word[u]=first(tablist[u][-1]) 
-          #new_word[u]=tokenizer.decode(closest_words0list[u].unsqueeze(0))
         print("\n")
 
-        for u in range(nind):
-          #print("csn proximity between original word and advers word:")
+        for u in range(nind): 
           csnlist[u]=float(torch.matmul(F.normalize(model.roberta.embeddings.word_embeddings(torch.tensor(tokenizer.encode(new_word[u])[1]).to(device)), p=2, dim=0), torch.transpose(F.normalize(model.roberta.embeddings.word_embeddings(x[0][indlist[u]]).unsqueeze(0), p=2, dim=1),0,1)))
-          #print(csnlist[u])
+         
         
         print(tokenizer.decode(x[0]))
         print(orig_wordlist)
