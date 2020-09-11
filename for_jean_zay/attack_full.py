@@ -206,7 +206,7 @@ def main():
         print('No GPU available, using the CPU instead.')
         device = torch.device("cpu")
         
-        
+       
     
     # Load BertForSequenceClassification, the pretrained BERT model with a single 
     # linear classification layer on top. 
@@ -228,6 +228,15 @@ def main():
     #load saved model (which is finetuned roberta)
     model.load_state_dict(torch.load('./roberta_finetunedbeta.pt', map_location=map_location))
     model.eval()
+    
+    #import language model
+    from transformers import RobertaForMaskedLM
+    modd = RobertaForMaskedLM.from_pretrained("./my_pretrained_mask")  #for mask
+    modd.eval()
+    # If there's a GPU available...
+    if torch.cuda.is_available():   
+      # Tell pytorch to run this model on the GPU.
+      modd.cuda()
   
 
     
