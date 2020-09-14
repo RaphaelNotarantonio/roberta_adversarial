@@ -13,8 +13,7 @@ import math as mm
 import matplotlib.pyplot as plt
 import random
 from time import time
-import pandas as pd 
-import math
+import pandas as pd
   
 from advertorch.utils import clamp
 from advertorch.utils import normalize_by_pnorm
@@ -144,7 +143,7 @@ def projection_simplex_sort(v, z=1):
 def KL(p,q):
   p=nn.Softmax(dim=0)(p)
   q=nn.Softmax(dim=0)(q)
-  return float(p[0])*math.log(float(p[0])/float(q[0]))+float(p[1])*math.log(float(p[1])/float(q[1])) #float
+  return float(p[0])*mm.log(float(p[0])/float(q[0]))+float(p[1])*mm.log(float(p[1])/float(q[1])) #float
 
 
 def main(): 
@@ -397,7 +396,7 @@ def main():
                                  ) - embvar.data
               with torch.no_grad():  
                 delta.data = tozero(delta.data,indlistvar) 
-                if (ii%300)==0:
+                if (ii%200)==0:
                  adverslist=[]
                  for t in range(nb):
                    advers, nb_vois =neighboors_np_dens_cand((embvar+delta)[0][indlistvar[t]],rayon,candid[t])
@@ -421,7 +420,7 @@ def main():
                                  ) - embvar.data #à virer je pense
               with torch.no_grad(): 
                 delta.data = tozero(delta.data,indlistvar) 
-                if (ii%300)==0:
+                if (ii%200)==0:
                  adverslist=[]
                  for t in range(nb):
                    advers, nb_vois =neighboors_np_dens_cand((embvar+delta)[0][indlistvar[t]],rayon,candid[t])
@@ -447,7 +446,7 @@ def main():
                   delta.data = clamp_by_pnorm(delta.data, ord, eps)
               with torch.no_grad(): 
                 delta.data = tozero(delta.data,indlistvar) 
-                if (ii%300)==0:
+                if (ii%200)==0:
                  adverslist=[]
                  for t in range(nb):
                    advers, nb_vois =neighboors_np_dens_cand((embvar+delta)[0][indlistvar[t]],rayon,candid[t])
@@ -604,12 +603,12 @@ def main():
     res_ne=[] 
     res_cs=[] 
     
-    l1=range(30)
+    l1=range(125,175)
     for iid in l1:
-     for eps_iter in [1.]:
-      eps=0.3 #embeddings distance with norm ord
-      epscand=0.5 #fix nb of candidates according to cosim
-      nb_iter=6001
+     for eps_iter in [2.]:
+      eps=0.7 #embeddings distance with norm ord
+      epscand=0.35 #fix nb of candidates according to cosim
+      nb_iter=8001
       ord=np.inf #norm choice
       rayon=1. #density search
       
@@ -668,6 +667,10 @@ def main():
         for u in range(nind): 
           csnlist[u]=float(torch.matmul(F.normalize(model.roberta.embeddings.word_embeddings(torch.tensor(tokenizer.encode(new_word[u])[1]).to(device)), p=2, dim=0), torch.transpose(F.normalize(model.roberta.embeddings.word_embeddings(x[0][indlist[u]]).unsqueeze(0), p=2, dim=1),0,1)))
          
+        nwi=''
+        for w in new_word:
+         nwi=nwi+w
+        new_word=[nwi]
         
         print(tokenizer.decode(x[0]))
         print(orig_wordlist)
