@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 import random
 from time import time
 import pandas as pd 
+import math
   
 from advertorch.utils import clamp
 from advertorch.utils import normalize_by_pnorm
@@ -138,6 +139,12 @@ def projection_simplex_sort(v, z=1):
     #w = torch.from_numpy(w) 
     #w=w.to(device)
     return w
+   
+#Kullback-Leibler div:
+def KL(p,q):
+  p=nn.Softmax(dim=0)(p)
+  q=nn.Softmax(dim=0)(q)
+  return float(p[0])*math.log(float(p[0])/float(q[0]))+float(p[1])*math.log(float(p[1])/float(q[1])) #float
 
 
 def main(): 
@@ -231,7 +238,11 @@ def main():
     
     #import language model
     from transformers import RobertaForMaskedLM
-    modd = RobertaForMaskedLM.from_pretrained("./my_pretrained_mask")  #for mask
+    modd = RobertaForMaskedLM.from_pretrained(
+     "./my_pretrained",
+      output_attentions = False, # Whether the model returns attentions weights.
+        output_hidden_states = False, # Whether the model returns all hidden-states.
+    )
     modd.eval()
     # If there's a GPU available...
     if torch.cuda.is_available():   
@@ -367,8 +378,12 @@ def main():
       ii=0
       while ii<nb_iter and not(fool):
           outputs = predict(xvar, embvar + delta)
-          loss = loss_fn(outputs, yvar)
-          if minimize:
+          if ii==0:
+             loss = loss_fn(outputs, yvar) - 0.01*modd(inputs_embeds=embvar+delta,labels=xvar)[0] - 100*sum([KL(model(inputs_embeds=((embvar)[0][kk]).unsqueeze(0).unsqueeze(0))[0][0],model(inputs_embeds=((embvar+delta)[0][kk]).unsqueeze(0).unsqueeze(0))[0][0]) for kk in indlistvar])
+           else:
+             loss = loss_fn(outputs, yvar) - 0.01*modd(inputs_embeds=embvar+delta,labels=replacelist(xvar,indlistvar,adverslist))[0] - 100*sum([KL(model(inputs_embeds=((embvar)[0][kk]).unsqueeze(0).unsqueeze(0))[0][0],model(inputs_embeds=((embvar+delta)[0][kk]).unsqueeze(0).unsqueeze(0))[0][0]) for kk in indlistvar])
+          #loss = loss_fn(outputs, yvar)
+          if minimize: 
               loss = -loss 
 
           loss.backward()
