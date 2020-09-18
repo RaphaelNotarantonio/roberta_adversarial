@@ -621,9 +621,9 @@ def main():
     res_ne=[] 
     res_cs=[] 
     
-    l1=range(125,175)
+    l1=range(125,130)
     for iid in l1:
-     for eps_iter in [2.]:
+     for eps_iter in [0.5]:
       eps=0.7 #embeddings distance with norm ord
       epscand=0.35 #fix nb of candidates according to cosim
       nb_iter=8001
