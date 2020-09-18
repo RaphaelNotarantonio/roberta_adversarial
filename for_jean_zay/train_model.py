@@ -161,7 +161,7 @@ def main():
   total_steps = len(train_dataloader2) * epochs
 
   # Create the learning rate scheduler.
-  scheduler = get_linear_schedule_with_warmup(optimizer2, 
+  scheduler2 = get_linear_schedule_with_warmup(optimizer2, 
                                             num_warmup_steps = 0, # Default value in run_glue.py
                                             num_training_steps = total_steps)
 
