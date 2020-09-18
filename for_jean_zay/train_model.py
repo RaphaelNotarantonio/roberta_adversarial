@@ -77,7 +77,7 @@ def main():
     input_ids2 = tokenizer.encode(sent, add_special_tokens=True)
 
     # Update the maximum sentence length.
-    max_len2 = max(max_len2, len(input_ids))
+    max_len2 = max(max_len2, len(input_ids2))
 
   print('Max sentence length: ', max_len2)
 
