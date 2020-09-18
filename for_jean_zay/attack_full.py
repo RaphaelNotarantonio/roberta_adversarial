@@ -235,18 +235,39 @@ def main():
     model.load_state_dict(torch.load('./roberta_finetunedbeta.pt', map_location=map_location))
     model.eval()
     
-    #import language model
-    from transformers import RobertaForMaskedLM
-    modd = RobertaForMaskedLM.from_pretrained(
-     "./my_pretrained",
-      output_attentions = False, # Whether the model returns attentions weights.
+    # Load BertForSequenceClassification, the pretrained BERT model with a single 
+    # linear classification layer on top. 
+    modd = RobertaForSequenceClassification.from_pretrained(
+        "./my_pretrained", # Use the 12-layer BERT model, with an uncased vocab.  #please rather use "roberta-base"
+        num_labels = 2, # The number of output labels--2 for binary classification.
+                       # You can increase this for multi-class tasks.   
+        output_attentions = False, # Whether the model returns attentions weights.
         output_hidden_states = False, # Whether the model returns all hidden-states.
     )
-    modd.eval()
     # If there's a GPU available...
     if torch.cuda.is_available():   
       # Tell pytorch to run this model on the GPU.
       modd.cuda()
+      map_location=lambda storage, loc: storage.cuda()
+    else: 
+     map_location= 'cpu'
+      
+    #load saved model (which is finetuned roberta)
+    modd.load_state_dict(torch.load('./languagemodel_finetuned.pt', map_location=map_location))
+    modd.eval()
+    
+    #import language model
+    #from transformers import RobertaForMaskedLM
+    #modd = RobertaForMaskedLM.from_pretrained(
+    # "./my_pretrained",
+    #  output_attentions = False, # Whether the model returns attentions weights.
+    #    output_hidden_states = False, # Whether the model returns all hidden-states.
+    #)
+    #modd.eval()
+    ## If there's a GPU available...
+    #if torch.cuda.is_available():   
+    #  # Tell pytorch to run this model on the GPU.
+    #  modd.cuda()
   
 
     
@@ -377,10 +398,7 @@ def main():
       ii=0
       while ii<nb_iter and not(fool):
           outputs = predict(xvar, embvar + delta)
-          if ii==0:
-             loss = loss_fn(outputs, yvar) - 0.01*modd(inputs_embeds=embvar+delta,labels=xvar)[0] - 100*sum([KL(model(inputs_embeds=((embvar)[0][kk]).unsqueeze(0).unsqueeze(0))[0][0],model(inputs_embeds=((embvar+delta)[0][kk]).unsqueeze(0).unsqueeze(0))[0][0]) for kk in indlistvar])
-           else:
-             loss = loss_fn(outputs, yvar) - 0.01*modd(inputs_embeds=embvar+delta,labels=replacelist(xvar,indlistvar,adverslist))[0] - 100*sum([KL(model(inputs_embeds=((embvar)[0][kk]).unsqueeze(0).unsqueeze(0))[0][0],model(inputs_embeds=((embvar+delta)[0][kk]).unsqueeze(0).unsqueeze(0))[0][0]) for kk in indlistvar])
+          loss = loss_fn(outputs, yvar) - 0.1*modd(inputs_embeds=embvar+delta,labels=labels=torch.tensor([1]).to(device))[0] - 10*sum([KL(model(inputs_embeds=((embvar)[0][kk]).unsqueeze(0).unsqueeze(0))[0][0],model(inputs_embeds=((embvar+delta)[0][kk]).unsqueeze(0).unsqueeze(0))[0][0]) for kk in indlistvar])
           #loss = loss_fn(outputs, yvar)
           if minimize: 
               loss = -loss 
