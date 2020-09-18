@@ -226,7 +226,7 @@ def main():
      map_location= 'cpu'
       
     #load saved model (which is finetuned roberta)
-    model.load_state_dict(torch.load('./roberta_finetunedbeta.pt', map_location=map_location))
+    model.load_state_dict(torch.load('./roberta_finetuned.pt', map_location=map_location))
     model.eval()
   
 
