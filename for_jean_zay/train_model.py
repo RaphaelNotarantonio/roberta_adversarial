@@ -73,6 +73,7 @@ def main():
                         sent,                      # Sentence to encode.
                         add_special_tokens = True, # Add '[CLS]' and '[SEP]'
                         max_length = 64,           # Pad & truncate all sentences.  "max_len2?
+                        truncation = True,
                         pad_to_max_length = True,
                         return_tensors = 'pt',     # Return pytorch tensors.
                    )
