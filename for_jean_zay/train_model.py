@@ -13,8 +13,7 @@ from transformers import get_linear_schedule_with_warmup
 import numpy as np
 import time
 import datetime
-import random
-import wget
+import random 
 import os
 
 # see https://mccormickml.com/2019/07/22/BERT-fine-tuning/
