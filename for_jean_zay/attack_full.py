@@ -232,7 +232,7 @@ def main():
      map_location= 'cpu'
       
     #load saved model (which is finetuned roberta)
-    model.load_state_dict(torch.load('./roberta_finetunedbeta.pt', map_location=map_location))
+    model.load_state_dict(torch.load('./roberta_finetuned.pt', map_location=map_location))
     model.eval()
     
     # Load BertForSequenceClassification, the pretrained BERT model with a single 
@@ -398,7 +398,7 @@ def main():
       ii=0
       while ii<nb_iter and not(fool):
           outputs = predict(xvar, embvar + delta)
-          loss = loss_fn(outputs, yvar) - 0.1*modd(inputs_embeds=embvar+delta,labels=labels=torch.tensor([1]).to(device))[0] - 10*sum([KL(model(inputs_embeds=((embvar)[0][kk]).unsqueeze(0).unsqueeze(0))[0][0],model(inputs_embeds=((embvar+delta)[0][kk]).unsqueeze(0).unsqueeze(0))[0][0]) for kk in indlistvar])
+          loss = loss_fn(outputs, yvar) - 0.1*modd(inputs_embeds=embvar+delta,labels=torch.tensor([1]).to(device))[0] - 10*sum([KL(model(inputs_embeds=((embvar)[0][kk]).unsqueeze(0).unsqueeze(0))[0][0],model(inputs_embeds=((embvar+delta)[0][kk]).unsqueeze(0).unsqueeze(0))[0][0]) for kk in indlistvar])
           #loss = loss_fn(outputs, yvar)
           if minimize: 
               loss = -loss 
