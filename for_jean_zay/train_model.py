@@ -40,20 +40,6 @@ def format_time(elapsed):
 
 def main():
     
-  #first model/finetuning/dataset: language model
-  print('Downloading dataset...')
-
-  # The URL for the dataset zip file.
-  url = 'https://nyu-mll.github.io/CoLA/cola_public_1.1.zip'
-
-  # Download the file (if we haven't already)
-  if not os.path.exists('./cola_public_1.1.zip'):
-        wget.download(url, './cola_public_1.1.zip')
-        
-  # Unzip the dataset (if we haven't already)
-  if not os.path.exists('./cola_public/'):
-    !unzip cola_public_1.1.zip
-    
  
   sentences2=[]
   labels2=[]
