@@ -7,12 +7,15 @@ cd $WORK
 git clone https://github.com/RaphaelNotarantonio/roberta_adversarial
 ```
 
-And then download Stanford data:
+And then download Stanford data and cola data:
 
 ```
 git clone https://gist.github.com/60c2bdb54d156a41194446737ce03e2e.git download_glue_repo
 
 python download_glue_repo/download_glue_data.py --data_dir='glue_data' --tasks='SST'
+
+wget 'https://nyu-mll.github.io/CoLA/cola_public_1.1.zip'
+unzip cola_public_1.1.zip
 ```
 
 You also need to install transformers and advertorch.
