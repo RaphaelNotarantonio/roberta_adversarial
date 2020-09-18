@@ -77,8 +77,8 @@ def main():
                         pad_to_max_length = True,
                         return_tensors = 'pt',     # Return pytorch tensors.
                    )
-  # Add the encoded sentence to the list.    
-  input_ids2.append(encoded_dict2)
+    # Add the encoded sentence to the list.    
+    input_ids2.append(encoded_dict2)
     
 
   # Convert the lists into tensors.
