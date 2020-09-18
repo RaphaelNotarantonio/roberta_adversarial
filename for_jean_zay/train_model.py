@@ -751,7 +751,7 @@ def main():
 
 
   #save model
-  torch.save(model.state_dict(), "roberta_finetuned.pt")
+  torch.save(model.state_dict(), "roberta_finetunedbeta.pt")
 
 
 
