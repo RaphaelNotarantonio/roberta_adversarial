@@ -620,6 +620,7 @@ def main():
     res_lg=[] 
     res_ne=[] 
     res_cs=[] 
+    res_st=[]
     
     l1=range(125,130)
     for iid in l1:
@@ -681,6 +682,8 @@ def main():
         for u in range(nind):
           new_word[u]=first(tablist[u][-1]) 
         print("\n")
+     
+        syntax=float(modd(replacelist(x,indlist,new_word),labels=torch.tensor([1]).to(device))[0])
 
         for u in range(nind): 
           csnlist[u]=float(torch.matmul(F.normalize(model.roberta.embeddings.word_embeddings(torch.tensor(tokenizer.encode(new_word[u])[1]).to(device)), p=2, dim=0), torch.transpose(F.normalize(model.roberta.embeddings.word_embeddings(x[0][indlist[u]]).unsqueeze(0), p=2, dim=1),0,1)))
@@ -704,12 +707,13 @@ def main():
          res_lg+=[lenlist(tablist)] 
          res_ne+=[new_word]
          res_cs+=[csnlist]
+         res_st+=[syntax]
          
         t1 = time()
         print('function takes %f' %(t1-t0))
 
-    df = pd.DataFrame(list(zip(res_se, res_or,res_lw,res_lg,res_ne,res_cs)), 
-               columns =['sentence', 'original word', 'not-fooling words ( = path)', 'path length', 'new word','csn similarity']) 
+    df = pd.DataFrame(list(zip(res_se, res_or,res_lw,res_lg,res_ne,res_cs,res_st)), 
+               columns =['sentence', 'original word', 'not-fooling words ( = path)', 'path length', 'new word','csn similarity','syntax correctness loss']) 
     
     
     df.to_csv('results/results.csv', index = False)  #r
