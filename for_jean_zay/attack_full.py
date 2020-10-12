@@ -683,7 +683,7 @@ def main():
           new_word[u]=first(tablist[u][-1]) 
         print("\n")
      
-        syntax=float(modd(replacelist(x,indlist,new_word),labels=torch.tensor([1]).to(device))[0])
+        syntax=float(modd(replacelist(x,indlist,[torch.tensor(tokenizer.encode(w)[1]).to(device) for w in new_word]),labels=torch.tensor([1]).to(device))[0])
 
         for u in range(nind): 
           csnlist[u]=float(torch.matmul(F.normalize(model.roberta.embeddings.word_embeddings(torch.tensor(tokenizer.encode(new_word[u])[1]).to(device)), p=2, dim=0), torch.transpose(F.normalize(model.roberta.embeddings.word_embeddings(x[0][indlist[u]]).unsqueeze(0), p=2, dim=1),0,1)))
