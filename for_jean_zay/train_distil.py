@@ -138,7 +138,7 @@ def main():
   # see https://mccormickml.com/2019/07/22/BERT-fine-tuning/
 
   from transformers import AdamW
-
+ 
   # Note: AdamW is a class from the huggingface library (as opposed to pytorch) 
   # I believe the 'W' stands for 'Weight Decay fix"
   optimizer2 = AdamW(modd.parameters(),
