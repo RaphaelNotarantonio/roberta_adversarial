@@ -140,7 +140,7 @@ def projection_simplex_sort(v, z=1):
 def main(): 
     
     #load encoder
-    tokenizer = DistilBert.from_pretrained('bert-base-cased') 
+    tokenizer = DistilBert.from_pretrained('distilbert-base-cased') 
 
     #get data and encode it
     sentences=[]
@@ -208,7 +208,7 @@ def main():
     # Load BertForSequenceClassification, the pretrained BERT model with a single 
     # linear classification layer on top. 
     model = DistilBertForSequenceClassification.from_pretrained(
-        "./my_pretrained", # Use the 12-layer BERT model, with an uncased vocab.  #please rather use "bert-base-cased"
+        "./my_pretrained", # Use the 12-layer BERT model, with an uncased vocab.  #please rather use "distilbert-base-cased"
         num_labels = 2, # The number of output labels--2 for binary classification.
                        # You can increase this for multi-class tasks.   
         output_attentions = False, # Whether the model returns attentions weights.
@@ -235,33 +235,7 @@ def main():
    
     def predict2(x,emb):
 
-     #some model requirements for the calculation
-     padding_idx=1
-     input_shape = x.size()
-     seq_length = input_shape[1]
-     position_ids = create_position_ids_from_input_ids(x.to('cpu'), 1).to(device) 
-     token_type_ids=torch.zeros(input_shape, dtype=torch.long, device=device)
-
-     #model calculations:
-     emb2=list(model.roberta.embeddings.children())[1:][0](position_ids)
-     emb3=list(model.roberta.embeddings.children())[1:][1](token_type_ids)
-     ess=list(model.roberta.embeddings.children())[1:][2](emb+emb2+emb3)  
-     out_1st=list(model.roberta.embeddings.children())[1:][3](ess)  #result of the whole embedding layer of roberta
-
-     #getting result of encoder layer of roberta
-     out_2nd=model.roberta.encoder.layer[:12][0](out_1st)
-     for i in range(1,12):
-       out_2nd=model.roberta.encoder.layer[:12][i](out_2nd[0])
-
-     #getting result of pooler layer of roberta
-     out_3nd = model.roberta.pooler(out_2nd[0])
-     out_4nd=(out_2nd[0], out_3nd,) + out_2nd[1:]
-     out_fin=out_4nd[0]
-
-     #getting result of classifier layer of roberta
-     out=model.classifier(out_fin) #this is equivalent to model(x)
-
-     return out
+     return model(inputs_embeds=emb)
     
     
     #find numb neighboors of embedd among the embedding dictionary
