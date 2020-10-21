@@ -230,7 +230,7 @@ def main():
     
     #define the two forward functions (we cut our model in two parts)
     def predict1(x): #ex: x = input_ids[0].unsqueeze(0).to(device)
-     emb=list(model.roberta.embeddings.children())[:1][0](x) #embedding of x
+     emb=list(model.distilbert.embeddings.children())[:1][0](x) #embedding of x
      return emb
    
     def predict2(x,emb):
@@ -240,7 +240,7 @@ def main():
     
     #find numb neighboors of embedd among the embedding dictionary
     def neighboors(embedd,numb):
-      emb_matrix = model.roberta.embeddings.word_embeddings.weight
+      emb_matrix = model.distilbert.embeddings.word_embeddings.weight
       normed_emb_matrix=F.normalize(emb_matrix, p=2, dim=1) 
       normed_emb_word=F.normalize(embedd, p=2, dim=0) 
       cosine_similarity = torch.matmul(normed_emb_word, torch.transpose(normed_emb_matrix,0,1))
@@ -304,7 +304,7 @@ def main():
         #prepare all potential candidates, once and for all
         candidates=torch.empty([0,768]).to(device)
         conversion=[]
-        emb_matrix=model.roberta.embeddings.word_embeddings.weight   
+        emb_matrix=model.distilbert.embeddings.word_embeddings.weight   
         normed_emb_matrix=F.normalize(emb_matrix, p=2, dim=1) 
         normed_emb_word=F.normalize(embvar[0][indlistvar[u]], p=2, dim=0) 
         cosine_similarity = torch.matmul(normed_emb_word, torch.transpose(normed_emb_matrix,0,1))
@@ -317,7 +317,7 @@ def main():
         print("nb of candidates :")
         print(len(conversion))
 
-      #U, S, V = torch.svd(model.roberta.embeddings.word_embeddings.weight)
+      #U, S, V = torch.svd(model.distilbert.embeddings.word_embeddings.weight)
 
       if delta_init is not None:
           delta = delta_init
@@ -613,7 +613,7 @@ def main():
         print("\n")
 
         for u in range(nind): 
-          csnlist[u]=float(torch.matmul(F.normalize(model.roberta.embeddings.word_embeddings(torch.tensor(tokenizer.encode(new_word[u])[1]).to(device)), p=2, dim=0), torch.transpose(F.normalize(model.roberta.embeddings.word_embeddings(x[0][indlist[u]]).unsqueeze(0), p=2, dim=1),0,1)))
+          csnlist[u]=float(torch.matmul(F.normalize(model.distilbert.embeddings.word_embeddings(torch.tensor(tokenizer.encode(new_word[u])[1]).to(device)), p=2, dim=0), torch.transpose(F.normalize(model.distilbert.embeddings.word_embeddings(x[0][indlist[u]]).unsqueeze(0), p=2, dim=1),0,1)))
          
         
         print(tokenizer.decode(x[0]))
