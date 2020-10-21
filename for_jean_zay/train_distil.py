@@ -521,7 +521,7 @@ def main():
   print("Total training took {:} (h:mm:ss)".format(format_time(time.time()-total_t0)))
 
   #save model
-  torch.save(modd.state_dict(), "languagemodel_finetuned.pt")
+  torch.save(modd.state_dict(), "distil_languagemodel_finetuned.pt")
 
 
 
