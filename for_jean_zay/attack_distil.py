@@ -336,18 +336,14 @@ def main():
         cosine_similarity = torch.matmul(normed_emb_word, torch.transpose(normed_emb_matrix,0,1))
         for t in range(len(cosine_similarity)): #evitez de faire DEUX boucles .
           if cosine_similarity[t]>epscand:
-            candidates=torch.cat((candidates,normed_emb_matrix[t].unsqueeze(0)),0)
-            conversion+=[t]
+            if levenshtein(tokenizer.decode(xvar[0][indlistvar[u]]),tokenizer.decode(torch.tensor(t)))>1:
+              candidates=torch.cat((candidates,normed_emb_matrix[t].unsqueeze(0)),0)
+              conversion+=[t]
         candid[u]=candidates
         convers[u]=conversion
         print("nb of candidates :")
-        print(len(conversion))
-        
-        conversion2=[]
-        for wrd in conversion: #converion contient les t de cosine_similarity qui sont les bon
-          if levenshtein(tokenizer.decode(xvar[0][indlistvar[u]]),tokenizer.decode(torch.tensor(wrd)))>1: #bien .decode? #candidates ce sont des embedddings
-            conversion2+=wrd
-        convers[u]=conversion2
+        print(len(conversion)) 
+         
 
       #U, S, V = torch.svd(model.distilbert.embeddings.word_embeddings.weight)
 
@@ -376,9 +372,9 @@ def main():
                                  ) - embvar.data
               with torch.no_grad():  
                 delta.data = tozero(delta.data,indlistvar) 
-                if (ii%300)==0:
-                 adverslist=[]
-                 for t in range(nb):
+                if (ii%300)==0: 
+                 adverslist=[]  
+                 for t in range(nb): 
                    advers, nb_vois =neighboors_np_dens_cand((embvar+delta)[0][indlistvar[t]],rayon,candid[t])
                    advers=int(advers[0]) 
                    advers=torch.tensor(convers[t][advers])
