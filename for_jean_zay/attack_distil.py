@@ -326,6 +326,7 @@ def main():
 
       candid=[torch.empty(0)]*nb
       convers=[[]]*nb
+      X=[dict()]*nb
       for u in range(nb):
         #prepare all potential candidates, once and for all
         candidates=torch.empty([0,768]).to(device)
@@ -339,10 +340,15 @@ def main():
             if levenshtein(tokenizer.decode(xvar[0][indlistvar[u]]),tokenizer.decode(torch.tensor(t)))>1:
               candidates=torch.cat((candidates,normed_emb_matrix[t].unsqueeze(0)),0)
               conversion+=[t]
+              X[u][str(t)] = emb_matrix[t] #NEW
         candid[u]=candidates
         convers[u]=conversion
         print("nb of candidates :")
         print(len(conversion)) 
+       
+      T=[]#new
+      for u in range(nb):#new
+        T+=spatialtree(X[u], rule='2-means', spill=0.3) #NEW
          
 
       #U, S, V = torch.svd(model.distilbert.embeddings.word_embeddings.weight)
@@ -374,10 +380,13 @@ def main():
                 delta.data = tozero(delta.data,indlistvar) 
                 if (ii%300)==0: 
                  adverslist=[]  
-                 for t in range(nb): 
-                   advers, nb_vois =neighboors_np_dens_cand((embvar+delta)[0][indlistvar[t]],rayon,candid[t])
-                   advers=int(advers[0]) 
-                   advers=torch.tensor(convers[t][advers])
+                 for t in range(nb):  
+                   advers = T[t].k_nearest(X[t], k=1, vector=(embvar+delta)[0][indlistvar[t]]) #
+                   print(advers) #probablement torch.tensor(advers.index)
+                   #ajoute aux autres np.etc!
+                   #advers, nb_vois =neighboors_np_dens_cand((embvar+delta)[0][indlistvar[t]],rayon,candid[t])
+                   #advers=int(advers[0]) 
+                   #advers=torch.tensor(convers[t][advers])
                    if len(tablist[t])==0:
                      tablist[t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
                    elif not(first(tablist[t][-1])==tokenizer.decode(advers.unsqueeze(0))): 
