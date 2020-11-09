@@ -31,7 +31,7 @@ from advertorch.attacks.utils import rand_init_delta
 #required functions:
 
 def levenshtein(seq1, seq2): #from https://stackabuse.com/levenshtein-distance-and-text-similarity-in-python/
-    size_x = len(seq1) + 1
+    size_x = len(seq1) + 1 
     size_y = len(seq2) + 1
     matrix = np.zeros ((size_x, size_y))
     for x in range(size_x):
@@ -365,8 +365,9 @@ def main():
         cosine_similarity = torch.matmul(normed_emb_word, torch.transpose(normed_emb_matrix,0,1))
         for t in range(len(cosine_similarity)): #evitez de faire DEUX boucles .
           if cosine_similarity[t]>epscand:
-            candidates=torch.cat((candidates,normed_emb_matrix[t].unsqueeze(0)),0)
-            conversion+=[t]
+            if levenshtein(tokenizer.decode(torch.tensor([xvar[0][indlistvar[u]]])),tokenizer.decode(torch.tensor([t])))!=1:
+             candidates=torch.cat((candidates,normed_emb_matrix[t].unsqueeze(0)),0)
+             conversion+=[t]
         candid[u]=candidates
         convers[u]=conversion
         print("nb of candidates :")
