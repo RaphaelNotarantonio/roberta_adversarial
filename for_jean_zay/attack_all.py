@@ -607,12 +607,12 @@ def main():
     res_ne=[] 
     res_cs=[] 
     
-    l1=range(30)
+    l1=[0,1,3,6,150,173,197]
     for iid in l1:
-     for eps_iter in [1.]:
-      eps=0.3 #embeddings distance with norm ord
-      epscand=0.5 #fix nb of candidates according to cosim
-      nb_iter=6001
+     for eps_iter in [0.5]:
+      eps=0.7 #embeddings distance with norm ord
+      epscand=0.25 #fix nb of candidates according to cosim
+      nb_iter=8001
       ord=np.inf #norm choice
       rayon=1. #density search
       
