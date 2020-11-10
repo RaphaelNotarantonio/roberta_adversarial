@@ -393,7 +393,7 @@ def main():
           if ord == np.inf:    
               grad_sign = delta.grad.data.sign()
               grad_sign = tozerolist(grad_sign,indlistvar)
-              #grad_sign=torch.matmul(torch.cat((torch.matmul(grad_sign,v)[:,:,:50],torch.zeros([768-50]).to(device)),2),v.t())
+              grad_sign=torch.matmul(torch.cat((torch.matmul(grad_sign,v)[:,:,:50],torch.zeros([768-50]).to(device)),2),v.t())
               delta.data = delta.data + batch_multiply(eps_iter, grad_sign)
               delta.data = batch_clamp(eps, delta.data)
               delta.data = clamp(embvar.data + delta.data, clip_min, clip_max #à retirer?
