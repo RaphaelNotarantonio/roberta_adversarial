@@ -282,8 +282,8 @@ def main():
     def neighboors_np_dens_cand(embedd,rayon,candidates):  
       normed_emb_word=F.normalize(embedd, p=2, dim=0) 
       cosine_similarity = torch.matmul(normed_emb_word, torch.transpose(candidates,0,1))
-      calc, closest_words = torch.topk(cosine_similarity,1,dim=0)
-      compteur=0 
+      calc, closest_words = torch.topk(cosine_similarity,10,dim=0)
+      compteur=0  
       if rayon<1.:
        for t in range(len(cosine_similarity)):  
          if cosine_similarity[t]>rayon:
@@ -385,23 +385,34 @@ def main():
                                  ) - embvar.data
               with torch.no_grad():  
                 delta.data = tozerolist(delta.data,indlistvar) 
-                if (ii%300)==0:
+                if (ii%50)==0:
                  adverslistbatch=[]
                  for ba in range(batch_size):
-                   adverslist=[]  
-                   for t in range(nb[ba]):
-                     advers, nb_vois =neighboors_np_dens_cand((embvar+delta)[ba][indlistvar[ba][t]],rayon,candidbatch[ba][t])
-                     advers=int(advers[0]) 
-                     advers=torch.tensor(conversbatch[ba][t][advers])
-                     if len(tablistbatch[ba][t])==0:
-                       tablistbatch[ba][t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
-                     elif not(first(tablistbatch[ba][t][-1])==tokenizer.decode(advers.unsqueeze(0))): 
-                       tablistbatch[ba][t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
-                     adverslist+=[advers]
-                   adverslistbatch+=[adverslist]
-                   word_balance_memory[ii]=float(model(replacelist(xvar[ba].unsqueeze(0),indlistvar[ba],adverslistbatch[ba]),labels=1-yvar[ba].unsqueeze(0))[0])-float(model(replacelist(xvar[ba].unsqueeze(0),indlistvar[ba],adverslistbatch[ba]),labels=yvar[ba].unsqueeze(0))[0])
-                   if word_balance_memory[ii]<0:
-                     fool[ba]=True           
+                   if not(fool[ba]):
+                     adverslist=[]*10 #i choose k=10 neighboors  
+                     for t in range(nb[ba]):
+                       adversk, nb_vois =neighboors_np_dens_cand((embvar+delta)[ba][indlistvar[ba][t]],rayon,candidbatch[ba][t])
+                       print(adversk)
+                       for k in range(10):
+                         advers=adversk[k]
+                         advers=int(advers[0]) 
+                         advers=torch.tensor(conversbatch[ba][t][advers])
+                         adverslist[k]+=[advers]
+                     adverslistbatch+=[adverslist]
+                     for k in range(10):
+                       word_balance_memory[ii]=float(model(replacelist(xvar[ba].unsqueeze(0),indlistvar[ba],adverslistbatch[ba][k]),labels=1-yvar[ba].unsqueeze(0))[0])-float(model(replacelist(xvar[ba].unsqueeze(0),indlistvar[ba],adverslistbatch[ba][k]),labels=yvar[ba].unsqueeze(0))[0])
+                       if word_balance_memory[ii]<0:
+                         fool[ba]=True  
+                          
+                         #ou alors fais un truc pour savoir quel est le plus grand k: prends le max des model(replacelist .. [k]).
+                         if len(tablistbatch[ba][t])==0:
+                           tablistbatch[ba][t]+=[(tokenizer.decode(adverslistbatch[ba][k].unsqueeze(0)),ii,nb_vois)]
+                         elif not(first(tablistbatch[ba][t][-1])==tokenizer.decode(advers.unsqueeze(0))): 
+                           tablistbatch[ba][t]+=[(tokenizer.decode(adverslistbatch[ba][k].unsqueeze(0)),ii,nb_vois)]
+                         #n'oublie pas que se posera la question de partir d'un embedding différent à chaque phrase.
+                   
+                        
+                             
 
           elif ord == 0: 
               grad = delta.grad.data 
