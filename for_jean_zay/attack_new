@@ -73,13 +73,16 @@ def tozero(tens,ind): #zero all indexes except ind
   tens2[0][ind]=tens[0][ind]
   return tens2
 
-def tozerolist(tens,indlist): #zero all indexes except indlist
-  nb=len(indlist)
+def tozerolist(tens,indlist): #zero all indexes except indlist #indlist= list of list . tens : batch
+  batch_size=len(indlist)
   tens3=torch.zeros_like(tens)
-  for k in range(nb):
-    tens2=torch.zeros_like(tens)
-    tens2[0][indlist[k]]=tens[0][indlist[k]]
-    tens3+=tens2
+  for ba in range(batch_size): 
+    for k in range(len(indlist[w]):
+      tens2=torch.zeros_like(tens)
+      tens2[ba][indlist[k]]=tens[ba][indlist[k]]
+      tens3+=tens2
+  if not(tens3.is_cuda):
+    print("oulah")
   return tens3 
 
 def my_proj_all(emb2,emb,indlist,eps):  #project all dim en cosim norm
@@ -137,10 +140,12 @@ def replace(x,ind,word):
   return xprime
 
 #replace word at index ind from sentence x
-def replacelist(x,indlist,wordlist):
+def replacelist(x,indlist,wordlist): 
   xprime=x.clone()
   for t in range(len(indlist)):
     xprime[0][indlist[t]]=wordlist[t]
+  #if not(xprime.is_cuda):
+  #  print("oulah replacelist")
   return xprime
 
 #projecting v on probability simplex
@@ -256,38 +261,11 @@ def main():
     
     #define the two forward functions (we cut our model in two parts)
     def predict1(x): #ex: x = input_ids[0].unsqueeze(0).to(device)
-     emb=list(model.roberta.embeddings.children())[:1][0](x) #embedding of x
+     emb=list(model.roberta.embeddings.children())[:1](x) #embedding of x #ajouter [0] avant (x) ?
      return emb
    
     def predict2(x,emb):
-
-     #some model requirements for the calculation
-     padding_idx=1
-     input_shape = x.size()
-     seq_length = input_shape[1]
-     position_ids = create_position_ids_from_input_ids(x.to('cpu'), 1).to(device) 
-     token_type_ids=torch.zeros(input_shape, dtype=torch.long, device=device)
-
-     #model calculations:
-     emb2=list(model.roberta.embeddings.children())[1:][0](position_ids)
-     emb3=list(model.roberta.embeddings.children())[1:][1](token_type_ids)
-     ess=list(model.roberta.embeddings.children())[1:][2](emb+emb2+emb3)  
-     out_1st=list(model.roberta.embeddings.children())[1:][3](ess)  #result of the whole embedding layer of roberta
-
-     #getting result of encoder layer of roberta
-     out_2nd=model.roberta.encoder.layer[:12][0](out_1st)
-     for i in range(1,12):
-       out_2nd=model.roberta.encoder.layer[:12][i](out_2nd[0])
-
-     #getting result of pooler layer of roberta
-     out_3nd = model.roberta.pooler(out_2nd[0])
-     out_4nd=(out_2nd[0], out_3nd,) + out_2nd[1:]
-     out_fin=out_4nd[0]
-
-     #getting result of classifier layer of roberta
-     out=model.classifier(out_fin) #this is equivalent to model(x)
-
-     return out
+     return model(inputs_embeds=emb)
     
     
     #find numb neighboors of embedd among the embedding dictionary
@@ -313,7 +291,7 @@ def main():
       return closest_words, compteur
     
     
-    def perturb_iterative_fool_many(xvar, embvar, indlistvar, yvar, predict, nb_iter, eps, epscand, eps_iter, loss_fn,rayon,
+    def perturb_iterative_fool_many(xvar, embvar, indlistvar, yvar, predict, nb_iter, eps, epscand, eps_iter, loss_fn,rayon, 
                       delta_init=None, minimize=False, ord=np.inf,
                       clip_min=0.0, clip_max=1.0,
                        l1_sparsity=None):
@@ -340,35 +318,45 @@ def main():
       """
 
       #will contain all words encountered during PGD
-      nb=len(indlistvar)
-      tablist=[]
-      for t in range(nb):
-        tablist+=[[]]
+      batch_size=len(indlistvar)
+      nb=[]
+      tablistbatch=[]
+      for ba in range(batch_size):
+        nb+=[len(indlistvar[ba])]
+        tablist=[]
+        for t in range(nb[-1]):
+          tablist+=[[]]
+        tablistbatch+=[tablist]
       fool=False
 
       #contain each loss on embed and each difference of loss on word nearest neighboor
       loss_memory=np.zeros((nb_iter,))
       word_balance_memory=np.zeros((nb_iter,))
 
-      candid=[torch.empty(0)]*nb
-      convers=[[]]*nb
-      for u in range(nb):
-        #prepare all potential candidates, once and for all
-        candidates=torch.empty([0,768]).to(device)
-        conversion=[]
-        emb_matrix=model.roberta.embeddings.word_embeddings.weight   
-        normed_emb_matrix=F.normalize(emb_matrix, p=2, dim=1) 
-        normed_emb_word=F.normalize(embvar[0][indlistvar[u]], p=2, dim=0) 
-        cosine_similarity = torch.matmul(normed_emb_word, torch.transpose(normed_emb_matrix,0,1))
-        for t in range(len(cosine_similarity)): #evitez de faire DEUX boucles .
-          if cosine_similarity[t]>epscand:
-            if levenshtein(tokenizer.decode(torch.tensor([xvar[0][indlistvar[u]]])),tokenizer.decode(torch.tensor([t])))!=1:
-             candidates=torch.cat((candidates,normed_emb_matrix[t].unsqueeze(0)),0)
-             conversion+=[t]
-        candid[u]=candidates
-        convers[u]=conversion
-        print("nb of candidates :")
-        print(len(conversion))
+      candidbatch=[]
+      conversbatch=[]
+      for ba in range(batch_size):
+        candid=[torch.empty(0)]*nb[ba]
+        convers=[[]]*nb[ba]
+        for u in range(nb[ba]):
+          #prepare all potential candidates, once and for all
+          candidates=torch.empty([0,768]).to(device)
+          conversion=[]
+          emb_matrix=model.roberta.embeddings.word_embeddings.weight   
+          normed_emb_matrix=F.normalize(emb_matrix, p=2, dim=1) 
+          normed_emb_word=F.normalize(embvar[ba][indlistvar[ba][u]], p=2, dim=0) 
+          cosine_similarity = torch.matmul(normed_emb_word, torch.transpose(normed_emb_matrix,0,1))
+          for t in range(len(cosine_similarity)): #evitez de faire DEUX boucles .
+            if cosine_similarity[t]>epscand:
+              if levenshtein(tokenizer.decode(torch.tensor([xvar[ba][indlistvar[ba][u]]])),tokenizer.decode(torch.tensor([t])))!=1:
+               candidates=torch.cat((candidates,normed_emb_matrix[t].unsqueeze(0)),0)
+               conversion+=[t]
+          candid[u]=candidates
+          convers[u]=conversion
+          print("nb of candidates :")
+          print(len(conversion))
+        candidbatch+=[candid]
+        conversbatch+=[convers]
 
       #U, S, V = torch.svd(model.roberta.embeddings.word_embeddings.weight)
 
@@ -390,27 +378,30 @@ def main():
           if ord == np.inf:    
               grad_sign = delta.grad.data.sign()
               grad_sign = tozerolist(grad_sign,indlistvar)
-              grad_sign=torch.matmul(torch.cat((torch.matmul(grad_sign,v)[:,:,:50],torch.zeros([768-50]).to(device)),2),v.t())
+              #grad_sign=torch.matmul(torch.cat((torch.matmul(grad_sign,v)[:,:,:50],torch.zeros([768-50]).to(device)),2),v.t())
               delta.data = delta.data + batch_multiply(eps_iter, grad_sign)
               delta.data = batch_clamp(eps, delta.data)
               delta.data = clamp(embvar.data + delta.data, clip_min, clip_max #à retirer?
                                  ) - embvar.data
               with torch.no_grad():  
-                delta.data = tozero(delta.data,indlistvar) 
+                delta.data = tozerolist(delta.data,indlistvar) 
                 if (ii%300)==0:
-                 adverslist=[]
-                 for t in range(nb):
-                   advers, nb_vois =neighboors_np_dens_cand((embvar+delta)[0][indlistvar[t]],rayon,candid[t])
-                   advers=int(advers[0]) 
-                   advers=torch.tensor(convers[t][advers])
-                   if len(tablist[t])==0:
-                     tablist[t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
-                   elif not(first(tablist[t][-1])==tokenizer.decode(advers.unsqueeze(0))): 
-                     tablist[t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
-                   adverslist+=[advers]
-                 word_balance_memory[ii]=float(model(replacelist(xvar,indlistvar,adverslist),labels=1-yvar)[0])-float(model(replacelist(xvar,indlistvar,adverslist),labels=yvar)[0])
-                 if word_balance_memory[ii]<0:
-                   fool=True          
+                 adverslistbatch=[]
+                 for ba in range(batch_size):
+                   adverslist=[]  
+                   for t in range(nb[ba]):
+                     advers, nb_vois =neighboors_np_dens_cand((embvar+delta)[ba][indlistvar[ba][t]],rayon,candidbatch[ba][t])
+                     advers=int(advers[0]) 
+                     advers=torch.tensor(conversbatch[ba][t][advers])
+                     if len(tablistbatch[ba][t])==0:
+                       tablistbatch[ba][t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
+                     elif not(first(tablistbatch[ba][t][-1])==tokenizer.decode(advers.unsqueeze(0))): 
+                       tablistbatch[ba][t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
+                     adverslist+=[advers]
+                   adverslistbatch+=[adverslist]
+                 #word_balance_memory[ii]=float(model(replacelist(xvar,indlistvar,adverslist),labels=1-yvar)[0])-float(model(replacelist(xvar,indlistvar,adverslist),labels=yvar)[0])
+                 #if word_balance_memory[ii]<0:
+                 #  fool=True          
 
           elif ord == 0: 
               grad = delta.grad.data 
@@ -491,8 +482,8 @@ def main():
               error = "Only ord = inf, ord = 1 and ord = 2 have been implemented"
               raise NotImplementedError(error)
           delta.grad.data.zero_()
-          with torch.no_grad():
-            loss_memory[ii]= loss  
+          #with torch.no_grad():
+          #  loss_memory[ii]= loss  
 
 
           ii+=1
@@ -505,9 +496,9 @@ def main():
       #plt.title("evolution of word loss difference")
       #plt.show() 
       emb_adv = clamp(embvar + delta, clip_min, clip_max)
-      return emb_adv, word_balance_memory, loss_memory, tablist, fool
+      return emb_adv, word_balance_memory, loss_memory, tablistbatch, fool
      
-    #pgd attack classes
+    #pgd attack classes 
     class PGDAttack(Attack, LabelMixin):
       """
       The projected gradient descent attack (Madry et al, 2017).
@@ -571,16 +562,18 @@ def main():
                   emb + delta.data, min=self.clip_min, max=self.clip_max) - emb  
 
           with torch.no_grad():
-            for t in range(delta.size()[1]):
-              if not(t in indlist):
-                for k in range(delta.size()[2]):
-                  delta[0][t][k]=0
+            for ba in range(delta.size()[0]):
+              for t in range(delta.size()[1]):
+                if not(t in indlist[ba]):
+                  for k in range(delta.size()[2]):
+                    delta[ba][t][k]=0
             if self.ord == 0: 
-              delta[0]=my_proj_all(emb[0]+delta[0],emb[0],indlist,self.eps)-emb[0]
+              for ba in range(delta.size()[0]):
+                delta[ba]=my_proj_all(emb[ba]+delta[ba],emb[ba],indlist[ba],self.eps)-emb[ba]
 
 
 
-          rval, word_balance_memory, loss_memory, tablist, fool = perturb_iterative_fool_many(
+          rval, word_balance_memory, loss_memory, tablistbatch, fool = perturb_iterative_fool_many(
               x, emb, indlist, y, self.predict, nb_iter=self.nb_iter,
               eps=self.eps, epscand=self.epscand, eps_iter=self.eps_iter,
               loss_fn=self.loss_fn, minimize=self.targeted,
@@ -589,7 +582,7 @@ def main():
               l1_sparsity=self.l1_sparsity,rayon=self.rayon
           )
 
-          return rval.data, word_balance_memory, loss_memory, tablist, fool 
+          return rval.data, word_balance_memory, loss_memory, tablistbatch, fool 
      
      
     
@@ -604,88 +597,111 @@ def main():
     res_ne=[] 
     res_cs=[] 
     
-    l1=[0,1,3,6,150,173,197]
-    for iid in l1:
-     for eps_iter in [0.5]:
-      eps=0.7 #embeddings distance with norm ord
-      epscand=0.25 #fix nb of candidates according to cosim
-      nb_iter=8001
-      ord=np.inf #norm choice
-      rayon=1. #density search
-      
-      t0 = time()
-      print("\n")
-      
-      mf=0
-
-      x = input_ids[iid].unsqueeze(0).to(device)
-      y = labels[iid].unsqueeze(0).to(device)
-      neigh=3
-      
-      indlist=range(1,sentlong(x[0])) 
-      nind=len(indlist)
-
-      if float(model(x,labels=y)[0])>float(model(x,labels=1-y)[0]): #if model misclassifies
-        mf+=1
-        print("sentence already misclassified")  
-        #return res_se, res_or,res_lw,res_lg,res_ne,res_cs
-      else: #model classifies correctly so it makes sense to try to fool it
-
-        print("original sentence:")
-        print(tokenizer.decode(x[0]))
-        print("is classified as:")
-        if bool(y==1):
-          print("positive")
+    
+    eps=0.7 #embeddings distance with norm ord
+    epscand=0.25 #fix nb of candidates according to cosim
+    nb_iter=8001
+    ord=np.inf #norm choice
+    rayon=1. #density search
+    
+    neigh=3
+    mf=0 
+    for uid in range(5):
+      vide=True
+      for vid in range(16):
+        iid = uid*16+vid
+        #if model misclassifies:
+        if float(model(input_ids[iid].unsqueeze(0).to(device),labels=labels[iid].unsqueeze(0).to(device))[0])>float(model(input_ids[iid].unsqueeze(0).to(device),labels=1-labels[iid].unsqueeze(0).to(device))[0]): 
+          mf+=1 
+          print("sentence already misclassified") 
         else:
-          print("negative")
+          if vide:
+            x = input_ids[iid].unsqueeze(0).to(device)
+            y = labels[iid].unsqueeze(0).to(device)
+            vide=False
+          else:
+            x = torch.cat((x,input_ids[iid].unsqueeze(0).to(device)),0)
+            y = torch.cat((y,labels[iid].unsqueeze(0).to(device)),0) 
+            
+      for eps_iter in [0.5]: 
+      
+        t0 = time()
         print("\n")
+        
+        batch_sze=x.size()[0]
+        indlist=[]
+        nb=[]
+        
+        for ba in range(batch_sze):
+          indlist+=[range(1,sentlong(x[ba]))]
+          nb+=[len(indlist[-1])]
 
-        orig_wordlist=[]
-        for u in range(nind):
-          #print("let's change word number"+str(indlist[u])+"which is:")
-          orig_word=tokenizer.decode(x[0][indlist[u]].unsqueeze(0))
-          #print(orig_word)
-          orig_wordlist+=[orig_word]
-        #print("\n")
+          print("original sentence:")
+          print(tokenizer.decode(x[ba]))
+          print("is classified as:")
+          if bool(y==1):
+            print("positive")
+          else:
+            print("negative")
+          print("\n")
+        
+        orig_wordlistbatch=[]
+        for ba in range(batch_sze):      
+          orig_wordlist=[]
+          for u in range(nb[ba]):
+            #print("let's change word number"+str(indlist[ba][u])+"which is:")
+            orig_word=tokenizer.decode(x[ba][indlist[ba][u]].unsqueeze(0))
+            #print(orig_word)
+            orig_wordlist+=[orig_word]
+          #print("\n")
+          orig_wordlistbatch+=[orig_wordlist]
 
         emb=predict1(x)
 
-        new_word=['']*nind  
+        new_wordbatch=[]
+        for ba in range(batch_sze):
+          new_word=['']*nb[ba]
+          new_wordbatch+=[new_word]
+          
         print("Does our PGD output's first neighboor fool model?:") 
         att=PGDAttack(predict2, loss_fn=None, eps=eps, epscand=epscand, nb_iter=nb_iter, 
                   eps_iter=eps_iter,rayon=rayon, rand_init=True, clip_min=-1., clip_max=1.,
                   ord=ord, l1_sparsity=None, targeted=False)                   
-        rval, word_balance_memory, loss_memory, tablist, fool =att.perturb_fool_many(x,emb,indlist,y)
+        rval, word_balance_memory, loss_memory, tablistbatch, fool =att.perturb_fool_many(x,emb,indlist,y)
         print(fool)  
- 
-        csnlist=[0]*nind
- 
 
-        for u in range(nind):
-          new_word[u]=first(tablist[u][-1]) 
-        print("\n")
+        csnlistbatch=[]
+        for ba in range(batch_sze):
+          csnlist=[0]*nb[ba]
+          csnlistbatch+=[csnlist]
 
-        for u in range(nind): 
-          csnlist[u]=float(torch.matmul(F.normalize(model.roberta.embeddings.word_embeddings(torch.tensor(tokenizer.encode(new_word[u])[1]).to(device)), p=2, dim=0), torch.transpose(F.normalize(model.roberta.embeddings.word_embeddings(x[0][indlist[u]]).unsqueeze(0), p=2, dim=1),0,1)))
-         
-        
-        print(tokenizer.decode(x[0]))
-        print(orig_wordlist)
-        print(tablist)
-        print(lenlist(tablist))
-        print(new_word)
-        print(csnlist)
-        
-        if fool:
-         res_se+=[tokenizer.decode(x[0])]
-         res_or+=[orig_wordlist]
-         res_lw+=[tablist]
-         res_lg+=[lenlist(tablist)] 
-         res_ne+=[new_word]
-         res_cs+=[csnlist]
-         
-        t1 = time()
-        print('function takes %f' %(t1-t0))
+        for ba in range(batch_sze):
+          for u in range(nb[ba]):
+            new_wordbatch[ba][u]=first(tablistbatch[ba][u][-1]) 
+          print("\n")
+          
+        for ba in range(batch_sze):
+          for u in range(nb[ba]): 
+            csnlistbatch[ba][u]=float(torch.matmul(F.normalize(model.roberta.embeddings.word_embeddings(torch.tensor(tokenizer.encode(new_wordbatch[ba][u])[1]).to(device)), p=2, dim=0), torch.transpose(F.normalize(model.roberta.embeddings.word_embeddings(x[ba][indlistbatch[ba][u]]).unsqueeze(0), p=2, dim=1),0,1)))
+
+        for ba in range(batch_sze):
+          print(tokenizer.decode(x[ba]))
+          print(orig_wordlistbatch[ba])
+          print(tablistbatch[ba])
+          print(lenlist(tablistbatch[ba]))
+          print(new_wordbatch[ba])
+          print(csnlistbatch[ba])
+
+          if fool:
+           res_se+=[tokenizer.decode(x[0])]
+           res_or+=[orig_wordlist]
+           res_lw+=[tablist]
+           res_lg+=[lenlist(tablist)] 
+           res_ne+=[new_word]
+           res_cs+=[csnlist]
+
+          t1 = time()
+          print('function takes %f' %(t1-t0))
 
     df = pd.DataFrame(list(zip(res_se, res_or,res_lw,res_lg,res_ne,res_cs)), 
                columns =['sentence', 'original word', 'not-fooling words ( = path)', 'path length', 'new word','csn similarity']) 
