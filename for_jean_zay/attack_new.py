@@ -388,20 +388,21 @@ def main():
                 if (ii%300)==0:
                  adverslistbatch=[]
                  for ba in range(batch_size):
-                   adverslist=[]  
-                   for t in range(nb[ba]):
-                     advers, nb_vois =neighboors_np_dens_cand((embvar+delta)[ba][indlistvar[ba][t]],rayon,candidbatch[ba][t])
-                     advers=int(advers[0]) 
-                     advers=torch.tensor(conversbatch[ba][t][advers])
-                     if len(tablistbatch[ba][t])==0:
-                       tablistbatch[ba][t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
-                     elif not(first(tablistbatch[ba][t][-1])==tokenizer.decode(advers.unsqueeze(0))): 
-                       tablistbatch[ba][t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
-                     adverslist+=[advers]
-                   adverslistbatch+=[adverslist]
-                   word_balance_memory[ii]=float(model(replacelist(xvar[ba].unsqueeze(0),indlistvar[ba],adverslistbatch[ba]),labels=1-yvar[ba].unsqueeze(0))[0])-float(model(replacelist(xvar[ba].unsqueeze(0),indlistvar[ba],adverslistbatch[ba]),labels=yvar[ba].unsqueeze(0))[0])
-                   if word_balance_memory[ii]<0:
-                     fool[ba]=True           
+                   if not(fool[ba]):
+                     adverslist=[]  
+                     for t in range(nb[ba]):
+                       advers, nb_vois =neighboors_np_dens_cand((embvar+delta)[ba][indlistvar[ba][t]],rayon,candidbatch[ba][t])
+                       advers=int(advers[0]) 
+                       advers=torch.tensor(conversbatch[ba][t][advers])
+                       if len(tablistbatch[ba][t])==0:
+                         tablistbatch[ba][t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
+                       elif not(first(tablistbatch[ba][t][-1])==tokenizer.decode(advers.unsqueeze(0))): 
+                         tablistbatch[ba][t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
+                       adverslist+=[advers]
+                     adverslistbatch+=[adverslist]
+                     word_balance_memory[ii]=float(model(replacelist(xvar[ba].unsqueeze(0),indlistvar[ba],adverslistbatch[ba]),labels=1-yvar[ba].unsqueeze(0))[0])-float(model(replacelist(xvar[ba].unsqueeze(0),indlistvar[ba],adverslistbatch[ba]),labels=yvar[ba].unsqueeze(0))[0])
+                     if word_balance_memory[ii]<0:
+                       fool[ba]=True           
 
           elif ord == 0: 
               grad = delta.grad.data 
