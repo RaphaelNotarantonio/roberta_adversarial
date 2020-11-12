@@ -327,7 +327,7 @@ def main():
         for t in range(nb[-1]):
           tablist+=[[]]
         tablistbatch+=[tablist]
-      fool=False
+      fool=[False]*batch_size
 
       #contain each loss on embed and each difference of loss on word nearest neighboor
       loss_memory=np.zeros((nb_iter,))
@@ -368,7 +368,7 @@ def main():
       #PGD
       delta.requires_grad_()
       ii=0
-      while ii<nb_iter and not(fool):
+      while ii<nb_iter: #not fool
           outputs = predict(xvar, embvar + delta)
           loss = loss_fn(outputs, yvar)
           if minimize:
@@ -399,9 +399,9 @@ def main():
                        tablistbatch[ba][t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
                      adverslist+=[advers]
                    adverslistbatch+=[adverslist]
-                 #word_balance_memory[ii]=float(model(replacelist(xvar,indlistvar,adverslist),labels=1-yvar)[0])-float(model(replacelist(xvar,indlistvar,adverslist),labels=yvar)[0])
-                 #if word_balance_memory[ii]<0:
-                 #  fool=True          
+                   word_balance_memory[ii]=float(model(replacelist(xvar[ba].unsqueeze(0),indlistvar[ba],adverslistbatch[ba]),labels=1-yvar[ba].unsqueeze(0))[0])-float(model(replacelist(xvar[ba].unsqueeze(0),indlistvar[ba],adverslistbatch[ba]),labels=yvar[ba].unsqueeze(0))[0])
+                   if word_balance_memory[ii]<0:
+                     fool[ba]=True           
 
           elif ord == 0: 
               grad = delta.grad.data 
@@ -692,16 +692,16 @@ def main():
           print(new_wordbatch[ba])
           print(csnlistbatch[ba])
 
-          if fool:
-           res_se+=[tokenizer.decode(x[0])]
-           res_or+=[orig_wordlist]
-           res_lw+=[tablist]
-           res_lg+=[lenlist(tablist)] 
-           res_ne+=[new_word]
-           res_cs+=[csnlist]
+          if fool[ba]:
+           res_se+=[tokenizer.decode(x[ba])]
+           res_or+=[orig_wordlistbatch[ba]]
+           res_lw+=[tablistbatch[ba]]
+           res_lg+=[lenlist(tablistbatch[ba])] 
+           res_ne+=[new_wordbatch[ba]]
+           res_cs+=[csnlistbatch[ba]]
 
-          t1 = time()
-          print('function takes %f' %(t1-t0))
+        t1 = time()
+        print('function takes %f' %(t1-t0))
 
     df = pd.DataFrame(list(zip(res_se, res_or,res_lw,res_lg,res_ne,res_cs)), 
                columns =['sentence', 'original word', 'not-fooling words ( = path)', 'path length', 'new word','csn similarity']) 
