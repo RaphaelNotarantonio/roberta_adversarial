@@ -77,9 +77,9 @@ def tozerolist(tens,indlist): #zero all indexes except indlist #indlist= list of
   batch_size=len(indlist)
   tens3=torch.zeros_like(tens)
   for ba in range(batch_size): 
-    for k in range(len(indlist[w]):
+    for k in range(len(indlist[ba]):
       tens2=torch.zeros_like(tens)
-      tens2[ba][indlist[k]]=tens[ba][indlist[k]]
+      tens2[ba][indlist[ba][k]]=tens[ba][indlist[ba][k]]
       tens3+=tens2
   if not(tens3.is_cuda):
     print("oulah")
@@ -144,8 +144,8 @@ def replacelist(x,indlist,wordlist):
   xprime=x.clone()
   for t in range(len(indlist)):
     xprime[0][indlist[t]]=wordlist[t]
-  #if not(xprime.is_cuda):
-  #  print("oulah replacelist")
+  if not(xprime.is_cuda):
+    print("oulah replacelist")
   return xprime
 
 #projecting v on probability simplex
@@ -318,7 +318,7 @@ def main():
       """
 
       #will contain all words encountered during PGD
-      batch_size=len(indlistvar)
+      batch_size=len(indlistvar) 
       nb=[]
       tablistbatch=[]
       for ba in range(batch_size):
@@ -679,7 +679,7 @@ def main():
         for ba in range(batch_sze):
           for u in range(nb[ba]):
             new_wordbatch[ba][u]=first(tablistbatch[ba][u][-1]) 
-          print("\n")
+        print("\n")
           
         for ba in range(batch_sze):
           for u in range(nb[ba]): 
