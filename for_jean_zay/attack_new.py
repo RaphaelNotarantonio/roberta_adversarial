@@ -261,7 +261,7 @@ def main():
     
     #define the two forward functions (we cut our model in two parts)
     def predict1(x): #ex: x = input_ids[0].unsqueeze(0).to(device)
-     emb=list(model.roberta.embeddings.children())[:1](x) #embedding of x #ajouter [0] avant (x) ?
+     emb=list(model.roberta.embeddings.children())[:1][0](x) #embedding of x #ajouter [0] avant (x) ?
      return emb
    
     def predict2(x,emb):
