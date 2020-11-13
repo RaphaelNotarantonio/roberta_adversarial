@@ -77,9 +77,9 @@ def tozerolist(tens,indlist): #zero all indexes except indlist #indlist= list of
   batch_size=len(indlist)
   tens3=torch.zeros_like(tens)
   for ba in range(batch_size): 
-    for k in range(len(indlist[w]):
+    for k in range(len(indlist[ba]):
       tens2=torch.zeros_like(tens)
-      tens2[ba][indlist[k]]=tens[ba][indlist[k]]
+      tens2[ba][indlist[ba][k]]=tens[ba][indlist[ba][k]]
       tens3+=tens2
   if not(tens3.is_cuda):
     print("oulah")
@@ -137,15 +137,15 @@ def lenlist(l): #return list of sizes from a list of list
 def replace(x,ind,word):
   xprime=x.clone()
   xprime[0][ind]=word
-  return xprime
+  return xprime 
 
 #replace word at index ind from sentence x
 def replacelist(x,indlist,wordlist): 
   xprime=x.clone()
   for t in range(len(indlist)):
     xprime[0][indlist[t]]=wordlist[t]
-  #if not(xprime.is_cuda):
-  #  print("oulah replacelist")
+  if not(xprime.is_cuda):
+    print("oulah replacelist")
   return xprime
 
 #projecting v on probability simplex
@@ -389,7 +389,7 @@ def main():
                  adverslistbatch=[]
                  for ba in range(batch_size):
                    if not(fool[ba]):
-                     adverslist=[]*10 #i choose k=10 neighboors  
+                     adverslist=[[]*10] #i choose k=10 neighboors  
                      for t in range(nb[ba]):
                        adversk, nb_vois =neighboors_np_dens_cand((embvar+delta)[ba][indlistvar[ba][t]],rayon,candidbatch[ba][t])
                        print(adversk)
@@ -399,17 +399,23 @@ def main():
                          advers=torch.tensor(conversbatch[ba][t][advers])
                          adverslist[k]+=[advers]
                      adverslistbatch+=[adverslist]
+                   
+                     word_balance_memory[ii]=1000 #now let's choose the best k of all ten
+                     k_mem=-1
                      for k in range(10):
-                       word_balance_memory[ii]=float(model(replacelist(xvar[ba].unsqueeze(0),indlistvar[ba],adverslistbatch[ba][k]),labels=1-yvar[ba].unsqueeze(0))[0])-float(model(replacelist(xvar[ba].unsqueeze(0),indlistvar[ba],adverslistbatch[ba][k]),labels=yvar[ba].unsqueeze(0))[0])
-                       if word_balance_memory[ii]<0:
+                       aut=float(model(replacelist(xvar[ba].unsqueeze(0),indlistvar[ba],adverslistbatch[ba][k]),labels=1-yvar[ba].unsqueeze(0))[0])-float(model(replacelist(xvar[ba].unsqueeze(0),indlistvar[ba],adverslistbatch[ba][k]),labels=yvar[ba].unsqueeze(0))[0])
+                       if aut<word_balance_memory[ii]:
+                          word_balance_memory[ii]=aut
+                          k_mem=k 
+                     if len(tablistbatch[ba][t])==0:
+                             tablistbatch[ba][t]+=[(tokenizer.decode(adverslistbatch[ba][k_mem].unsqueeze(0)),ii,nb_vois)]
+                     elif not(first(tablistbatch[ba][t][-1])==tokenizer.decode(advers.unsqueeze(0))): 
+                             tablistbatch[ba][t]+=[(tokenizer.decode(adverslistbatch[ba][k_mem].unsqueeze(0)),ii,nb_vois)]
+                           #n'oublie pas que se posera la question de partir d'un embedding différent à chaque phrase.
+                     if word_balance_memory[ii]<0:
                          fool[ba]=True  
-                          
-                         #ou alors fais un truc pour savoir quel est le plus grand k: prends le max des model(replacelist .. [k]).
-                         if len(tablistbatch[ba][t])==0:
-                           tablistbatch[ba][t]+=[(tokenizer.decode(adverslistbatch[ba][k].unsqueeze(0)),ii,nb_vois)]
-                         elif not(first(tablistbatch[ba][t][-1])==tokenizer.decode(advers.unsqueeze(0))): 
-                           tablistbatch[ba][t]+=[(tokenizer.decode(adverslistbatch[ba][k].unsqueeze(0)),ii,nb_vois)]
-                         #n'oublie pas que se posera la question de partir d'un embedding différent à chaque phrase.
+                         
+                         
                    
                         
                              
