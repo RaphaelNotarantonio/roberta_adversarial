@@ -62,19 +62,6 @@ def sentlong(x): #real length of an input_id sentence
     compteur+=1
   return compteur # compteur smallest index for which x[compteur]=2
 
-def clean(x,emb): #zero all embeddings at indexes beyond the real sentence lenght
-  size = emb.size()
-  for b in range(size[0]): #batch_size
-    sent_long=sentlong(x[b])
-    for i in range(sent_long,size[1]): #real size of the sentence 
-      emb[b,i,:]=torch.zeros(size[2]) #embedding size
-  return emb
-
-def tozero(tens,ind): #zero all indexes except ind
-  tens2=torch.zeros_like(tens)
-  tens2[0][ind]=tens[0][ind]
-  return tens2
-
 def tozerolist(tens,indlist): #zero all indexes except indlist
   nb=len(indlist)
   tens3=torch.zeros_like(tens)
@@ -132,12 +119,6 @@ def lenlist(l): #return list of sizes from a list of list
   for li in l:
     res+=[len(li)]
   return res
-
-#replace word at index ind from sentence x
-def replace(x,ind,word):
-  xprime=x.clone()
-  xprime[0][ind]=word
-  return xprime
 
 #replace word at index ind from sentence x
 def replacelist(x,indlist,wordlist):
@@ -393,7 +374,6 @@ def main():
           if ord == np.inf:    
               grad_sign = delta.grad.data.sign()
               grad_sign = tozerolist(grad_sign,indlistvar)
-              grad_sign=torch.matmul(torch.cat((torch.matmul(grad_sign,v)[:,:,:50],torch.zeros([768-50]).to(device)),2),v.t())
               delta.data = delta.data + batch_multiply(eps_iter, grad_sign)
               delta.data = batch_clamp(eps, delta.data)
               delta.data = clamp(embvar.data + delta.data, clip_min, clip_max #à retirer?
@@ -418,6 +398,7 @@ def main():
           elif ord == 0: 
               grad = delta.grad.data 
               grad = tozero(grad,indlistvar)   
+              grad = torch.matmul(torch.cat((torch.matmul(grad,v)[:,:,:50],torch.zeros([768-50]).to(device)),2),v.t())
               delta.data = delta.data + batch_multiply(eps_iter, grad)
               delta.data[0] = my_proj_all(embvar.data[0]+delta.data[0],embvar[0],indlistvar,eps) -embvar.data[0]
               delta.data = clamp(embvar.data + delta.data, clip_min, clip_max
