@@ -77,7 +77,7 @@ def tozerolist(tens,indlist): #zero all indexes except indlist #indlist= list of
   batch_size=len(indlist)
   tens3=torch.zeros_like(tens)
   for ba in range(batch_size): 
-    for k in range(len(indlist[ba]):
+    for k in range(len(indlist[ba])):
       tens2=torch.zeros_like(tens)
       tens2[ba][indlist[ba][k]]=tens[ba][indlist[ba][k]]
       tens3+=tens2
