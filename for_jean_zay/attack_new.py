@@ -640,7 +640,7 @@ def main():
           print("original sentence:")
           print(tokenizer.decode(x[ba]))
           print("is classified as:")
-          if bool(y==1):
+          if bool(y[ba]==1):
             print("positive")
           else:
             print("negative")
