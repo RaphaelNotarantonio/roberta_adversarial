@@ -699,7 +699,7 @@ def main():
           
         for ba in range(batch_sze):
           for u in range(nb[ba]): 
-            csnlistbatch[ba][u]=float(torch.matmul(F.normalize(model.roberta.embeddings.word_embeddings(torch.tensor(tokenizer.encode(new_wordbatch[ba][u])[1]).to(device)), p=2, dim=0), torch.transpose(F.normalize(model.roberta.embeddings.word_embeddings(x[ba][indlistbatch[ba][u]]).unsqueeze(0), p=2, dim=1),0,1)))
+            csnlistbatch[ba][u]=float(torch.matmul(F.normalize(model.roberta.embeddings.word_embeddings(torch.tensor(tokenizer.encode(new_wordbatch[ba][u])[1]).to(device)), p=2, dim=0), torch.transpose(F.normalize(model.roberta.embeddings.word_embeddings(x[ba][indlist[ba][u]]).unsqueeze(0), p=2, dim=1),0,1)))
 
         for ba in range(batch_sze):
           print(tokenizer.decode(x[ba]))
