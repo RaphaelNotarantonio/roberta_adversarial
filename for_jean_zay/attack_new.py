@@ -265,7 +265,7 @@ def main():
      return emb
    
     def predict2(x,emb):
-     return model(inputs_embeds=emb)
+     return model(inputs_embeds=emb)[0]
     
     
     #find numb neighboors of embedd among the embedding dictionary
