@@ -389,15 +389,14 @@ def main():
                  adverslistbatch=[]
                  for ba in range(batch_size):
                    if not(fool[ba]):
-                     adverslist=[[]*10] #i choose k=10 neighboors  
+                     adverslist=[[] for _ in range(10)] #i choose k=10 neighboors  
                      for t in range(nb[ba]):
-                       adversk, nb_vois =neighboors_np_dens_cand((embvar+delta)[ba][indlistvar[ba][t]],rayon,candidbatch[ba][t])
-                       for k in range(10):
-                         advers=int(advers[k]) 
-                         advers=torch.tensor(conversbatch[ba][t][advers])
-                         adverslist[k]+=[advers]
+                      adversk, nb_vois = neighboors_np_dens_cand((embvar+delta)[ba][indlistvar[ba][t]],rayon,candidbatch[ba][t])
+                      for k in range(10):
+                        advers=int(adversk[k])
+                        advers=torch.tensor(conversbatch[ba][t][advers])
+                        adverslist[k]+=[advers]
                      adverslistbatch+=[adverslist]
-                   
                      word_balance_memory[ii]=1000 #now let's choose the best k of all ten
                      k_mem=-1
                      for k in range(10):
