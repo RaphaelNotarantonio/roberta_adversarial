@@ -392,10 +392,8 @@ def main():
                      adverslist=[[]*10] #i choose k=10 neighboors  
                      for t in range(nb[ba]):
                        adversk, nb_vois =neighboors_np_dens_cand((embvar+delta)[ba][indlistvar[ba][t]],rayon,candidbatch[ba][t])
-                       print(adversk)
                        for k in range(10):
-                         advers=adversk[k]
-                         advers=int(advers[0]) 
+                         advers=int(advers[k]) 
                          advers=torch.tensor(conversbatch[ba][t][advers])
                          adverslist[k]+=[advers]
                      adverslistbatch+=[adverslist]
