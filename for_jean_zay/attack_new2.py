@@ -400,7 +400,7 @@ def main():
                           advers=torch.tensor(conversbatch[ba][t][advers])
                           adverslist[k]+=[advers]
                         else:
-                          adverslist[k]+=[adverslist[k-1][t]]
+                          adverslist[k]+=[advers]
                      adverslistbatch+=[adverslist]
                      word_balance_memory[ii]=1000 #now let's choose the best k of all ten
                      k_mem=-1
