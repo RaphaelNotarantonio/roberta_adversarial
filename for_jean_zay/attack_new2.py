@@ -357,6 +357,32 @@ def main():
           print(len(conversion))
         candidbatch+=[candid]
         conversbatch+=[convers]
+        
+      candidbatch=[]
+      conversbatch=[]
+      for ba in range(batch_size):
+        candid=[torch.empty(0)]*nb[ba]
+        convers=[[]]*nb[ba]
+        for u in range(nb[ba]):
+          #prepare all potential candidates, once and for all
+          candidates=torch.empty([0,768]).to(device)
+          conversion=[]
+          emb_matrix=model.roberta.embeddings.word_embeddings.weight   
+          normed_emb_matrix=F.normalize(emb_matrix, p=2, dim=1) 
+          normed_emb_word=F.normalize(embvar[ba][indlistvar[ba][u]], p=2, dim=0) 
+          cosine_similarity = torch.matmul(normed_emb_word, torch.transpose(normed_emb_matrix,0,1))
+          for t in range(len(cosine_similarity)): #evitez de faire DEUX boucles .
+            if cosine_similarity[t]>epscand:
+              if levenshtein(tokenizer.decode(torch.tensor([xvar[ba][indlistvar[ba][u]]])),tokenizer.decode(torch.tensor([t])))!=1:
+               candidates=torch.cat((candidates,normed_emb_matrix[t].unsqueeze(0)),0)
+               conversion+=[t]
+          candid[u]=candidates
+          convers[u]=conversion
+          print("nb of candidates :")
+          print(len(conversion))
+        candidbatch+=[candid]
+        conversbatch+=[convers]  
+       
 
       #U, S, V = torch.svd(model.roberta.embeddings.word_embeddings.weight)
 
@@ -393,13 +419,16 @@ def main():
                      for t in range(nb[ba]):
                       adversk, nb_vois = neighboors_np_dens_cand((embvar+delta)[ba][indlistvar[ba][t]],rayon,candidbatch[ba][t])
                       for k in range(10):
-                        advers=int(adversk[k])
-                        advers=torch.tensor(conversbatch[ba][t][advers])
-                        adverslist[k]+=[advers]
+                        if k<len(candidbatch[ba][t]):
+                          advers=int(adversk[k])
+                          advers=torch.tensor(conversbatch[ba][t][advers])
+                          adverslist[k]+=[advers]
+                        else:
+                          adverslist[k]+=adverslist[k-1]
                      adverslistbatch+=[adverslist]
                      word_balance_memory[ii]=1000 #now let's choose the best k of all ten
                      k_mem=-1
-                     for k in range(10):
+                     for k in range(10)
                        aut=float(model(replacelist(xvar[ba].unsqueeze(0),indlistvar[ba],adverslistbatch[ba][k]),labels=1-yvar[ba].unsqueeze(0))[0])-float(model(replacelist(xvar[ba].unsqueeze(0),indlistvar[ba],adverslistbatch[ba][k]),labels=yvar[ba].unsqueeze(0))[0])
                        if aut<word_balance_memory[ii]:
                           word_balance_memory[ii]=aut
