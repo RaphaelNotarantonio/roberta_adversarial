@@ -406,7 +406,7 @@ def main():
                           k_mem=k 
                      if len(tablistbatch[ba][t])==0:
                              tablistbatch[ba][t]+=[(tokenizer.decode(adverslistbatch[ba][k_mem].unsqueeze(0)),ii,nb_vois)]
-                     elif not(first(tablistbatch[ba][t][-1])==tokenizer.decode(advers.unsqueeze(0))): 
+                     elif not(first(tablistbatch[ba][t][-1])==tokenizer.decode(adverslistbatch[ba][k_mem].unsqueeze(0))): 
                              tablistbatch[ba][t]+=[(tokenizer.decode(adverslistbatch[ba][k_mem].unsqueeze(0)),ii,nb_vois)]
                            #n'oublie pas que se posera la question de partir d'un embedding différent à chaque phrase.
                      if word_balance_memory[ii]<0:
