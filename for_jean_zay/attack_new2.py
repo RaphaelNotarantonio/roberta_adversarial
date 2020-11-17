@@ -357,31 +357,7 @@ def main():
           print(len(conversion))
         candidbatch+=[candid]
         conversbatch+=[convers]
-        
-      candidbatch=[]
-      conversbatch=[]
-      for ba in range(batch_size):
-        candid=[torch.empty(0)]*nb[ba]
-        convers=[[]]*nb[ba]
-        for u in range(nb[ba]):
-          #prepare all potential candidates, once and for all
-          candidates=torch.empty([0,768]).to(device)
-          conversion=[]
-          emb_matrix=model.roberta.embeddings.word_embeddings.weight   
-          normed_emb_matrix=F.normalize(emb_matrix, p=2, dim=1) 
-          normed_emb_word=F.normalize(embvar[ba][indlistvar[ba][u]], p=2, dim=0) 
-          cosine_similarity = torch.matmul(normed_emb_word, torch.transpose(normed_emb_matrix,0,1))
-          for t in range(len(cosine_similarity)): #evitez de faire DEUX boucles .
-            if cosine_similarity[t]>epscand:
-              if levenshtein(tokenizer.decode(torch.tensor([xvar[ba][indlistvar[ba][u]]])),tokenizer.decode(torch.tensor([t])))!=1:
-               candidates=torch.cat((candidates,normed_emb_matrix[t].unsqueeze(0)),0)
-               conversion+=[t]
-          candid[u]=candidates
-          convers[u]=conversion
-          print("nb of candidates :")
-          print(len(conversion))
-        candidbatch+=[candid]
-        conversbatch+=[convers]  
+         
        
 
       #U, S, V = torch.svd(model.roberta.embeddings.word_embeddings.weight)
@@ -424,7 +400,7 @@ def main():
                           advers=torch.tensor(conversbatch[ba][t][advers])
                           adverslist[k]+=[advers]
                         else:
-                          adverslist[k]+=adverslist[k-1]
+                          adverslist[k]+=[adverslist[k-1][t]]
                      adverslistbatch+=[adverslist]
                      word_balance_memory[ii]=1000 #now let's choose the best k of all ten
                      k_mem=-1
@@ -434,9 +410,9 @@ def main():
                           word_balance_memory[ii]=aut
                           k_mem=k 
                      if len(tablistbatch[ba][t])==0:
-                             tablistbatch[ba][t]+=[(tokenizer.decode(adverslistbatch[ba][k_mem].unsqueeze(0)),ii,nb_vois)]
-                     elif not(first(tablistbatch[ba][t][-1])==tokenizer.decode(adverslistbatch[ba][k_mem].unsqueeze(0))): 
-                             tablistbatch[ba][t]+=[(tokenizer.decode(adverslistbatch[ba][k_mem].unsqueeze(0)),ii,nb_vois)]
+                             tablistbatch[ba][t]+=[(tokenizer.decode(adverslistbatch[ba][k_mem][t].unsqueeze(0)),ii,nb_vois)]
+                     elif not(first(tablistbatch[ba][t][-1])==tokenizer.decode(adverslistbatch[ba][k_mem][t].unsqueeze(0))): 
+                             tablistbatch[ba][t]+=[(tokenizer.decode(adverslistbatch[ba][k_mem][t].unsqueeze(0)),ii,nb_vois)]
                            #n'oublie pas que se posera la question de partir d'un embedding différent à chaque phrase.
                      if word_balance_memory[ii]<0:
                          fool[ba]=True  
