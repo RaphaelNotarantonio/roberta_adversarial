@@ -282,7 +282,7 @@ def main():
     def neighboors_np_dens_cand(embedd,rayon,candidates):  
       normed_emb_word=F.normalize(embedd, p=2, dim=0) 
       cosine_similarity = torch.matmul(normed_emb_word, torch.transpose(candidates,0,1))
-      calc, closest_words = torch.topk(cosine_similarity,10,dim=0)
+      calc, closest_words = torch.topk(cosine_similarity,len(10,len(candidates)),dim=0)
       compteur=0  
       if rayon<1.:
        for t in range(len(cosine_similarity)):  
