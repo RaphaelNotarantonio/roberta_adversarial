@@ -166,7 +166,7 @@ def projection_simplex_sort(v, z=1):
 def main(): 
     
     #load encoder
-    tokenizer = DistilBert.from_pretrained('distilbert-base-cased') 
+    tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-cased') 
 
     #get data and encode it
     sentences=[]
