@@ -391,7 +391,7 @@ def main():
                  adverslistbatch=[]
                  for ba in range(batch_size):
                    if fool[ba]:
-                     adverslistbatch+=[]
+                     adverslistbatch+=[[]]
                    if not(fool[ba]):
                      adverslist=[[] for _ in range(10)] #i choose k=10 neighboors  
                      for t in range(nb[ba]):
