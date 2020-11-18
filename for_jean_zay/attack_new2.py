@@ -411,11 +411,12 @@ def main():
                        if aut<word_balance_memory[ii]:
                           word_balance_memory[ii]=aut
                           k_mem=k 
-                     if len(tablistbatch[ba][t])==0:
-                             tablistbatch[ba][t]+=[(tokenizer.decode(adverslistbatch[ba][k_mem][t].unsqueeze(0)),ii,nb_vois)]
-                     elif not(first(tablistbatch[ba][t][-1])==tokenizer.decode(adverslistbatch[ba][k_mem][t].unsqueeze(0))): 
-                             tablistbatch[ba][t]+=[(tokenizer.decode(adverslistbatch[ba][k_mem][t].unsqueeze(0)),ii,nb_vois)]
-                           #n'oublie pas que se posera la question de partir d'un embedding différent à chaque phrase.
+                     for t in range(nb[ba]):
+                       if len(tablistbatch[ba][t])==0:
+                               tablistbatch[ba][t]+=[(tokenizer.decode(adverslistbatch[ba][k_mem][t].unsqueeze(0)),ii,nb_vois)]
+                       elif not(first(tablistbatch[ba][t][-1])==tokenizer.decode(adverslistbatch[ba][k_mem][t].unsqueeze(0))): 
+                               tablistbatch[ba][t]+=[(tokenizer.decode(adverslistbatch[ba][k_mem][t].unsqueeze(0)),ii,nb_vois)]
+                             #n'oublie pas que se posera la question de partir d'un embedding différent à chaque phrase.
                      if word_balance_memory[ii]<0:
                          fool[ba]=True  
                          
