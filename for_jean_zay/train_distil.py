@@ -13,7 +13,7 @@ import datetime
 import random 
 import os
 
-# see https://mccormickml.com/2019/07/22/BERT-fine-tuning/
+# see https://mccormickml.com/2019/07/22/BERT-fine-tuning/ 
 
 
 # Function to calculate the accuracy of our predictions vs labels
