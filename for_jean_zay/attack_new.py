@@ -388,6 +388,8 @@ def main():
                 if (ii%300)==0:
                  adverslistbatch=[]
                  for ba in range(batch_size):
+                   if fool[ba]:
+                     adverslistbatch+=[]
                    if not(fool[ba]):
                      adverslist=[]  
                      for t in range(nb[ba]):
