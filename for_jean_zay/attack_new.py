@@ -610,6 +610,7 @@ def main():
     neigh=3
     mf=0 #number of sentences misclassified
     iid=0
+    totaltime=0
     totalnbphrase=0
     totalbrise=0
     for uid in range(5):
@@ -713,6 +714,7 @@ def main():
 
         t1 = time()
         print('function takes %f' %(t1-t0))
+        totaltime=totaltime+t1-t0
 
     df = pd.DataFrame(list(zip(res_se, res_or,res_lw,res_lg,res_ne,res_cs)), 
                columns =['sentence', 'original word', 'not-fooling words ( = path)', 'path length', 'new word','csn similarity']) 
@@ -721,6 +723,10 @@ def main():
     print(totalnbphrase)
     print(totalbrise)
     print(mf)
+    print("average treatment time")
+    print(totaltime/totalnbphrase)
+    print("rentability")
+    print(totaltime/totalbrise)
     df.to_csv('results/results.csv', index = False)  #r
    
 
