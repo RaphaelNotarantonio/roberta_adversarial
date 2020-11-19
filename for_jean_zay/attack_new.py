@@ -608,16 +608,21 @@ def main():
     rayon=1. #density search
     
     neigh=3
-    mf=0 
+    mf=0 #number of sentences misclassified
+    iid=0
+    totalnbphrase=0
+    totalbrise=0
     for uid in range(5):
       vide=True
-      for vid in range(16):
-        iid = uid*16+vid
+      vidcompte=0 
+      while vidcompte<16:
         #if model misclassifies:
         if float(model(input_ids[iid].unsqueeze(0).to(device),labels=labels[iid].unsqueeze(0).to(device))[0])>float(model(input_ids[iid].unsqueeze(0).to(device),labels=1-labels[iid].unsqueeze(0).to(device))[0]): 
           mf+=1 
           print("sentence already misclassified") 
         else:
+          vidcompte+=1
+          totalnbphrase+=1
           if vide:
             x = input_ids[iid].unsqueeze(0).to(device)
             y = labels[iid].unsqueeze(0).to(device)
@@ -625,8 +630,9 @@ def main():
           else:
             x = torch.cat((x,input_ids[iid].unsqueeze(0).to(device)),0)
             y = torch.cat((y,labels[iid].unsqueeze(0).to(device)),0) 
-            
-      for eps_iter in [0.5]: 
+        iid+=1 
+          
+      for eps_iter in [0.5]:  #attention à totalnbphrase
       
         t0 = time()
         print("\n")
@@ -695,7 +701,9 @@ def main():
           print(new_wordbatch[ba])
           print(csnlistbatch[ba])
 
+          
           if fool[ba]:
+           totalbrise+=1
            res_se+=[tokenizer.decode(x[ba])]
            res_or+=[orig_wordlistbatch[ba]]
            res_lw+=[tablistbatch[ba]]
@@ -709,7 +717,10 @@ def main():
     df = pd.DataFrame(list(zip(res_se, res_or,res_lw,res_lg,res_ne,res_cs)), 
                columns =['sentence', 'original word', 'not-fooling words ( = path)', 'path length', 'new word','csn similarity']) 
     
-    
+    print("nb of sent, succsf attacked, alrdy miscl")
+    print(totalnbphrase)
+    print(totalbrise)
+    print(mf)
     df.to_csv('results/results.csv', index = False)  #r
    
 
