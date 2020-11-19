@@ -746,7 +746,11 @@ def main():
     print(totaltime/totalnbphrase)
     print("rentability")
     print(totaltime/totalbrise)
-    df.to_csv('results/results.csv', index = False)  #r
+    df.to_csv('results/results.csv', index = True)  #r
+    
+    dfstat = {'nb of sent': [totalnbphrase], 'succsf attacked': [totalbrise], 'alrdy miscl': [mf], 'average treatment time': [totaltime/totalnbphrase], 'rentability': [totaltime/totalbrise]}
+    dfstat = pd.DataFrame(data=dfstat)
+    dfstat.to_csv('results/resultsstat.csv', index=True)
    
 
     #return res_se, res_or,res_lw,res_lg,res_ne,res_cs
