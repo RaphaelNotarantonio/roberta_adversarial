@@ -370,6 +370,7 @@ def main():
       #PGD
       delta.requires_grad_()
       ii=0
+      B=10
       while ii<nb_iter: #not fool
           outputs = predict(xvar, embvar + delta)
           loss = loss_fn(outputs, yvar)
@@ -393,10 +394,10 @@ def main():
                    if fool[ba]:
                      adverslistbatch+=[[]]
                    if not(fool[ba]):
-                     adverslist=[[] for _ in range(10)] #i choose k=10 neighboors  
+                     adverslist=[[] for _ in range(B)] #i choose k=10 neighboors  
                      for t in range(nb[ba]):
                       adversk, nb_vois = neighboors_np_dens_cand((embvar+delta)[ba][indlistvar[ba][t]],rayon,candidbatch[ba][t])
-                      for k in range(10):
+                      for k in range(B):
                         if k<len(candidbatch[ba][t]):
                           advers=int(adversk[k])
                           advers=torch.tensor(conversbatch[ba][t][advers])
@@ -406,7 +407,7 @@ def main():
                      adverslistbatch+=[adverslist]
                      word_balance_memory[ii]=1000 #now let's choose the best k of all ten
                      k_mem=-1
-                     for k in range(10)
+                     for k in range(B)
                        aut=float(model(replacelist(xvar[ba].unsqueeze(0),indlistvar[ba],adverslistbatch[ba][k]),labels=1-yvar[ba].unsqueeze(0))[0])-float(model(replacelist(xvar[ba].unsqueeze(0),indlistvar[ba],adverslistbatch[ba][k]),labels=yvar[ba].unsqueeze(0))[0])
                        if aut<word_balance_memory[ii]:
                           word_balance_memory[ii]=aut
