@@ -5,7 +5,7 @@ from transformers import RobertaForSequenceClassification, RobertaConfig
 
 import numpy as np
 import torch
-import torch.nn as nn
+import torch.nn as nn  
 import torch.nn.functional as F
 import math as mm
 import matplotlib.pyplot as plt
@@ -735,7 +735,7 @@ def main(): #metavar?
       t0 = time()
 
 
-      res_se=[] 
+      res_se=[]  
       res_or=[] 
       res_lw=[] 
       res_lg=[] 
