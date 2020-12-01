@@ -577,12 +577,12 @@ def main():
     res_ne=[] 
     res_cs=[] 
 
-    l1=range(30)
+    l1=range(125,130)
     for iid in l1:
-     for eps_iter in [1.]:
-      eps=0.3 #embeddings distance with norm ord
-      epscand=0.5 #fix nb of candidates according to cosim
-      nb_iter=6001
+     for eps_iter in [2.]:
+      eps=0.7 #embeddings distance with norm ord
+      epscand=0.35 #fix nb of candidates according to cosim
+      nb_iter=8001
       ord=np.inf #norm choice
       rayon=1. #density search
 
@@ -640,7 +640,11 @@ def main():
 
         for u in range(nind): 
           csnlist[u]=float(torch.matmul(F.normalize(model.roberta.embeddings.word_embeddings(torch.tensor(tokenizer.encode(new_word[u])[1]).to(device)), p=2, dim=0), torch.transpose(F.normalize(model.roberta.embeddings.word_embeddings(x[0][indlist[u]]).unsqueeze(0), p=2, dim=1),0,1)))
-
+        
+        nwi=''
+        for w in new_word:
+         nwi=nwi+w
+        new_word=[nwi]
 
         print(tokenizer.decode(x[0]))
         print(orig_wordlist)
