@@ -385,7 +385,7 @@ def main():
               delta.data = clamp(embvar.data + delta.data, clip_min, clip_max #à retirer?
                                  ) - embvar.data
               with torch.no_grad():  
-                delta.data = tozero(delta.data,indlistvar) 
+                delta.data = tozerolist(delta.data,indlistvar) 
                 if (ii%300)==0:
                  adverslistbatch=[]
                  for ba in range(batch_size):
