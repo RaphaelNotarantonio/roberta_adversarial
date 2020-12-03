@@ -633,7 +633,7 @@ def main():
             y = torch.cat((y,labels[iid].unsqueeze(0).to(device)),0) 
         iid+=1 
           
-      for eps_iter in [0.5]:  #attention à totalnbphrase
+      for eps_iter in [2.]:  #attention à totalnbphrase
       
         t0 = time()
         print("\n")
