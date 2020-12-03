@@ -599,7 +599,7 @@ def main():
               l1_sparsity=self.l1_sparsity,rayon=self.rayon
           )
 
-          return rval.data, word_balance_memory, loss_memory, tablistbatch, fool 
+          return rval.data, word_balance_memory, loss_memory, tablist, fool 
 
 
 
