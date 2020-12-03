@@ -362,8 +362,9 @@ def main():
         cosine_similarity = torch.matmul(normed_emb_word, torch.transpose(normed_emb_matrix,0,1))
         for t in range(len(cosine_similarity)): #evitez de faire DEUX boucles .
           if cosine_similarity[t]>epscand:
-            candidates=torch.cat((candidates,normed_emb_matrix[t].unsqueeze(0)),0)
-            conversion+=[t]
+            if levenshtein(tokenizer.decode(torch.tensor([xvar[0][indlistvar[u]]])),tokenizer.decode(torch.tensor([t])))!=1:
+                candidates=torch.cat((candidates,normed_emb_matrix[t].unsqueeze(0)),0)
+                conversion+=[t]
         candid[u]=candidates
         convers[u]=conversion
         print("nb of candidates :")
