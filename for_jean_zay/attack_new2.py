@@ -407,7 +407,7 @@ def main():
                      adverslistbatch+=[adverslist]
                      word_balance_memory[ii]=1000 #now let's choose the best k of all ten
                      k_mem=-1
-                     for k in range(B)
+                     for k in range(B):
                        aut=float(model(replacelist(xvar[ba].unsqueeze(0),indlistvar[ba],adverslistbatch[ba][k]),labels=1-yvar[ba].unsqueeze(0))[0])-float(model(replacelist(xvar[ba].unsqueeze(0),indlistvar[ba],adverslistbatch[ba][k]),labels=yvar[ba].unsqueeze(0))[0])
                        if aut<word_balance_memory[ii]:
                           word_balance_memory[ii]=aut
