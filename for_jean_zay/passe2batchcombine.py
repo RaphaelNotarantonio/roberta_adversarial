@@ -284,7 +284,7 @@ def main():
     def neighboors_np_dens_cand(embedd,rayon,candidates):  
       normed_emb_word=F.normalize(embedd, p=2, dim=0) 
       cosine_similarity = torch.matmul(normed_emb_word, torch.transpose(candidates,0,1))
-      calc, closest_words = torch.topk(cosine_similarity,1,dim=0)
+      calc, closest_words = torch.topk(cosine_similarity,min(10,len(candidates)),dim=0)
       compteur=0 
       if rayon<1.:
        for t in range(len(cosine_similarity)):  
@@ -369,6 +369,7 @@ def main():
       #PGD
       delta.requires_grad_()
       ii=0
+      B=10
       while ii<nb_iter and not(fool):
           outputs = predict(xvar, embvar + delta)
           loss = loss_fn(outputs, yvar)
@@ -385,27 +386,39 @@ def main():
               delta.data = clamp(embvar.data + delta.data, clip_min, clip_max #à retirer?
                                  ) - embvar.data
               with torch.no_grad():  
-                delta.data = tozero(delta.data,indlistvar) 
-                if (ii%300)==0:
+                delta.data = tozerolist(delta.data,indlistvar) 
+                if (ii%100)==0:
                  adverslistbatch=[]
                  for ba in range(batch_size):
-                   if fool[ba]: #pourquoi???
+                   if fool[ba]:
                      adverslistbatch+=[[]]
                    if not(fool[ba]):
-                     adverslist=[]  
+                     adverslist=[[] for _ in range(B)] #i choose k=10 neighboors  
                      for t in range(nb[ba]):
-                       advers, nb_vois =neighboors_np_dens_cand((embvar+delta)[ba][indlistvar[ba][t]],rayon,candidbatch[ba][t])
-                       advers=int(advers[0]) 
-                       advers=torch.tensor(conversbatch[ba][t][advers])
-                       if len(tablistbatch[ba][t])==0:
-                         tablistbatch[ba][t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
-                       elif not(first(tablistbatch[ba][t][-1])==tokenizer.decode(advers.unsqueeze(0))): 
-                         tablistbatch[ba][t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
-                       adverslist+=[advers]
+                      adversk, nb_vois = neighboors_np_dens_cand((embvar+delta)[ba][indlistvar[ba][t]],rayon,candidbatch[ba][t])
+                      for k in range(B):
+                        if k<len(candidbatch[ba][t]):
+                          advers=int(adversk[k])
+                          advers=torch.tensor(conversbatch[ba][t][advers])
+                          adverslist[k]+=[advers]
+                        else:
+                          adverslist[k]+=[advers]
                      adverslistbatch+=[adverslist]
-                     word_balance_memory[ii]=float(model(replacelist(xvar[ba].unsqueeze(0),indlistvar[ba],adverslistbatch[ba]),labels=1-yvar[ba].unsqueeze(0))[0])-float(model(replacelist(xvar[ba].unsqueeze(0),indlistvar[ba],adverslistbatch[ba]),labels=yvar[ba].unsqueeze(0))[0])
+                     word_balance_memory[ii]=1000 #now let's choose the best k of all ten
+                     k_mem=-1
+                     for k in range(B)
+                       aut=float(model(replacelist(xvar[ba].unsqueeze(0),indlistvar[ba],adverslistbatch[ba][k]),labels=1-yvar[ba].unsqueeze(0))[0])-float(model(replacelist(xvar[ba].unsqueeze(0),indlistvar[ba],adverslistbatch[ba][k]),labels=yvar[ba].unsqueeze(0))[0])
+                       if aut<word_balance_memory[ii]:
+                          word_balance_memory[ii]=aut
+                          k_mem=k 
+                     for t in range(nb[ba]):
+                       if len(tablistbatch[ba][t])==0:
+                               tablistbatch[ba][t]+=[(tokenizer.decode(adverslistbatch[ba][k_mem][t].unsqueeze(0)),ii,nb_vois)]
+                       elif not(first(tablistbatch[ba][t][-1])==tokenizer.decode(adverslistbatch[ba][k_mem][t].unsqueeze(0))): 
+                               tablistbatch[ba][t]+=[(tokenizer.decode(adverslistbatch[ba][k_mem][t].unsqueeze(0)),ii,nb_vois)]
+                             #n'oublie pas que se posera la question de partir d'un embedding différent à chaque phrase.
                      if word_balance_memory[ii]<0:
-                       fool[ba]=True
+                         fool[ba]=True  
                         
           elif ord == 0: 
               grad = delta.grad.data 
@@ -586,7 +599,7 @@ def main():
               l1_sparsity=self.l1_sparsity,rayon=self.rayon
           )
 
-          return rval.data, word_balance_memory, loss_memory, tablist, fool 
+          return rval.data, word_balance_memory, loss_memory, tablistbatch, fool 
 
 
 
@@ -633,7 +646,7 @@ def main():
             y = torch.cat((y,labels[iid].unsqueeze(0).to(device)),0) 
         iid+=1 
           
-      for eps_iter in [0.5]:  #attention à totalnbphrase
+      for eps_iter in [2.]:  #attention à totalnbphrase
       
         t0 = time()
         print("\n")
