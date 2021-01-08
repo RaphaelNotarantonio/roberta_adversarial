@@ -1,3 +1,5 @@
+# required modules:
+
 from transformers import RobertaTokenizer
 import csv
 import torch
@@ -28,6 +30,7 @@ from advertorch.attacks.utils import rand_init_delta
 
 #required functions:
 
+#calculate levenshtein distance between two words 
 def levenshtein(seq1, seq2): #from https://stackabuse.com/levenshtein-distance-and-text-similarity-in-python/
     size_x = len(seq1) + 1 
     size_y = len(seq2) + 1
@@ -54,19 +57,11 @@ def levenshtein(seq1, seq2): #from https://stackabuse.com/levenshtein-distance-a
     #print (matrix)
     return (matrix[size_x - 1, size_y - 1])
 
-def sentlong(x): #real length of an input_id sentence 
+def sentlong(x): #real length of an input_id sentence (the rest of the input_id is padding)
   compteur = 0
   while compteur<len(x) and x[compteur]!=2:
     compteur+=1
   return compteur # compteur smallest index for which x[compteur]=2
-
-def clean(x,emb): #zero all embeddings at indexes beyond the real sentence lenght
-  size = emb.size()
-  for b in range(size[0]): #batch_size
-    sent_long=sentlong(x[b])
-    for i in range(sent_long,size[1]): #real size of the sentence 
-      emb[b,i,:]=torch.zeros(size[2]) #embedding size
-  return emb
 
 def tozero(tens,ind): #zero all indexes except ind
   tens2=torch.zeros_like(tens)
@@ -85,6 +80,7 @@ def tozerolist(tens,indlist): #zero all indexes except indlist #indlist= list of
     print("oulah")
   return tens3 
 
+#only if we use the cosin norm as a metric for our gradient descent (if ord=0)
 def my_proj_all(emb2,emb,indlist,eps):  #project all dim en cosim norm
   emb3=emb2.clone() 
   for t in indlist:
@@ -111,7 +107,7 @@ def my_proj(xt,x0,eps): #project one dim en cosim norm
   else:
     return torch.zeros_like(xt)
 
-def first(couple):
+def first(couple): 
   a,b,c=couple
   return a
 
@@ -144,13 +140,11 @@ def replacelist(x,indlist,wordlist):
   xprime=x.clone()
   for t in range(len(indlist)):
     xprime[0][indlist[t]]=wordlist[t]
-  if not(xprime.is_cuda):
-    print("oulah replacelist")
   return xprime
 
+#a possible variation of our algorithm to put in place:
 #projecting v on probability simplex
 #https://gist.github.com/mblondel/6f3b7aaad90606b98f71
-
 def projection_simplex_sort(v, z=1):
     #v=v.cpu()
     #v=v.numpy()
@@ -173,10 +167,10 @@ def main():
     #load encoder
     tokenizer = RobertaTokenizer.from_pretrained('roberta-base') 
 
-    #get data and encode it
+    #get data and encode it  
     sentences=[]
     labels=[]
-    with open("./glue_data/SST-2/dev.tsv") as tsvfile:
+    with open("./glue_data/SST-2/dev.tsv") as tsvfile: #the dataset we want to attack. here for example: dev
         tsvreader = csv.reader(tsvfile, delimiter="\t")
         for i, line in enumerate(tsvreader):
           if i>0:
@@ -192,7 +186,7 @@ def main():
         input_ids = tokenizer.encode(sent, add_special_tokens=True)
 
         # Update the maximum sentence length.
-        max_len = max(max_len, len(input_ids))
+        max_len = max(max_len, len(input_ids)) 
 
     print('Max sentence length: ', max_len)
 
@@ -213,10 +207,7 @@ def main():
     # Convert the lists into tensors.
     input_ids = torch.cat(input_ids, dim=0)
     labels = torch.tensor(labels)
-
-    # Print sentence 0, now as a list of IDs.
-    #print('Original: ', sentences[0])
-    #print('Token IDs:', input_ids[0])
+ 
 
 
     # If there's a GPU available...
