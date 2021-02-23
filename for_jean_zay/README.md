@@ -19,7 +19,7 @@ unzip cola_public_1.1.zip
 
 You also need to install transformers and advertorch.
 
-It can then be better to manually download models:
+You should then manually download models:
 
 ```
 https://github.com/huggingface/transformers/issues/856
