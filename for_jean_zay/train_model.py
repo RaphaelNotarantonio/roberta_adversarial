@@ -191,10 +191,10 @@ def main():
   #extract data
   sentences=[]
   labels=[]
-  with open("./glue_data/SST-2/dev.tsv") as tsvfile:
+  with open("./glue_data/SST-2/train.tsv") as tsvfile:
       tsvreader = csv.reader(tsvfile, delimiter="\t")
       for i, line in enumerate(tsvreader):
-        if i>0:
+        if i>30000:
           sentences += [line[0]]
           labels += [int(line[1])]
 
