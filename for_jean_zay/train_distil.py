@@ -1,3 +1,6 @@
+#here we will get the weights distil_languagemodel_finetuned.pt and distil_finetuned.pt for our language model (with cola dataset) and 
+#our sentiment classification model to be attacked (with stanford treebank
+
 import torch
 import csv 
 import transformers
@@ -36,7 +39,7 @@ def format_time(elapsed):
 
 def main():
     
- 
+  #load cola dataset for our langage model finetuning
   sentences2=[]
   labels2=[]
   with open("./cola_public/raw/in_domain_train.tsv") as tsvfile2:
@@ -181,7 +184,7 @@ def main():
     
     
    
-  #second dataset
+  #second dataset: stanford treebank for our sentiment classification model (which is to be attacked)
     
   
   #extract data
@@ -373,9 +376,8 @@ def main():
         # As we unpack the batch, we'll also copy each tensor to the GPU using the 
         # `to` method.
         #
-        # `batch` contains three pytorch tensors:
-        #   [0]: input ids 
-        #   [1]: attention masks
+        # `batch` contains two pytorch tensors:
+        #   [0]: input ids  
         #   [2]: labels 
         b_input_ids = batch[0].to(device)
         b_labels = batch[1].to(device)
@@ -455,9 +457,8 @@ def main():
         # As we unpack the batch, we'll also copy each tensor to the GPU using 
         # the `to` method.
         #
-        # `batch` contains three pytorch tensors:
-        #   [0]: input ids 
-        #   [1]: attention masks
+        # `batch` contains two pytorch tensors:
+        #   [0]: input ids  
         #   [2]: labels 
         b_input_ids = batch[0].to(device)
         b_labels = batch[1].to(device)
@@ -584,8 +585,7 @@ def main():
           # `to` method.
           #
           # `batch` contains three pytorch tensors:
-          #   [0]: input ids 
-          #   [1]: attention masks
+          #   [0]: input ids  
           #   [2]: labels 
           b_input_ids = batch[0].to(device)
           b_labels = batch[1].to(device)
@@ -665,9 +665,8 @@ def main():
           # As we unpack the batch, we'll also copy each tensor to the GPU using 
           # the `to` method.
           #
-          # `batch` contains three pytorch tensors:
-          #   [0]: input ids 
-          #   [1]: attention masks
+          # `batch` contains two pytorch tensors:
+          #   [0]: input ids  
           #   [2]: labels 
           b_input_ids = batch[0].to(device)
           b_labels = batch[1].to(device)
