@@ -37,4 +37,7 @@ Finally, you can attack any sentence with:
 sbatch launch_attack.py  
 ```
 
+Specify the sentences you want to attack in the python attack file you are launching.
+
+
 You can also finetune distilbert with launch_train_model.py and change the file that is run in launch_attack.py in order to attack distilbert rather than roberta.
