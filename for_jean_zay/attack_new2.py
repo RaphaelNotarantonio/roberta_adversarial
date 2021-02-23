@@ -160,7 +160,7 @@ def projection_simplex_sort(v, z=1):
     #w = torch.from_numpy(w) 
     #w=w.to(device)
     return w
-
+ 
 
 def main(): 
     
@@ -350,7 +350,7 @@ def main():
         conversbatch+=[convers]
          
        
-
+      #PCA:
       #U, S, V = torch.svd(model.roberta.embeddings.word_embeddings.weight)
 
       if delta_init is not None:
@@ -372,16 +372,15 @@ def main():
           if ord == np.inf:    
               grad_sign = delta.grad.data.sign()
               grad_sign = tozerolist(grad_sign,indlistvar)
-              #grad_sign=torch.matmul(torch.cat((torch.matmul(grad_sign,v)[:,:,:50],torch.zeros([768-50]).to(device)),2),v.t())
               delta.data = delta.data + batch_multiply(eps_iter, grad_sign)
               delta.data = batch_clamp(eps, delta.data)
               delta.data = clamp(embvar.data + delta.data, clip_min, clip_max #à retirer?
                                  ) - embvar.data
               with torch.no_grad():  
                 delta.data = tozerolist(delta.data,indlistvar) 
-                if (ii%50)==0:
+                if (ii%50)==0: #regularly check if classification is fooled
                  adverslistbatch=[]
-                 for ba in range(batch_size):
+                 for ba in range(batch_size): 
                    if fool[ba]:
                      adverslistbatch+=[[]]
                    if not(fool[ba]):
@@ -407,17 +406,12 @@ def main():
                        if len(tablistbatch[ba][t])==0:
                                tablistbatch[ba][t]+=[(tokenizer.decode(adverslistbatch[ba][k_mem][t].unsqueeze(0)),ii,nb_vois)]
                        elif not(first(tablistbatch[ba][t][-1])==tokenizer.decode(adverslistbatch[ba][k_mem][t].unsqueeze(0))): 
-                               tablistbatch[ba][t]+=[(tokenizer.decode(adverslistbatch[ba][k_mem][t].unsqueeze(0)),ii,nb_vois)]
-                             #n'oublie pas que se posera la question de partir d'un embedding différent à chaque phrase.
+                               tablistbatch[ba][t]+=[(tokenizer.decode(adverslistbatch[ba][k_mem][t].unsqueeze(0)),ii,nb_vois)] 
                      if word_balance_memory[ii]<0:
                          fool[ba]=True  
                          
                          
-                   
-                        
-                             
-
-          elif ord == 0: 
+          elif ord == 0: #à compléter
               grad = delta.grad.data 
               grad = tozero(grad,indlistvar)   
               delta.data = delta.data + batch_multiply(eps_iter, grad)
@@ -441,7 +435,7 @@ def main():
                  if word_balance_memory[ii]<0:
                    fool=True            
 
-          elif ord == 2:  
+          elif ord == 2: #à compléter
               grad = delta.grad.data
               grad = tozero(grad,indlistvar) 
               grad = normalize_by_pnorm(grad)
@@ -467,7 +461,7 @@ def main():
                  if word_balance_memory[ii]<0:
                    fool=True     
 
-          elif ord == 1:
+          elif ord == 1: #à compléter
               grad = delta.grad.data
               grad_sign = tozero(grad_sign,indvar) 
               abs_grad = torch.abs(grad)
