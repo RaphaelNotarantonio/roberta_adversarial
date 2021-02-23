@@ -22,7 +22,7 @@ You also need to install transformers and advertorch.
 Then whenever you want to finetune roberta:
 
 ```
-sbatch launch_model_train.py
+sbatch launch_train_model.py
 ```
 
 Finally, you can attack any sentence with:
