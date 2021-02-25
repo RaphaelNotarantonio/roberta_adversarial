@@ -1,4 +1,6 @@
-# required modules:
+# attack batch of sentences and widen the encountered sentences during the iterations by checking its neighboors
+
+#required modules:
 
 from transformers import RobertaTokenizer
 import csv
