@@ -607,8 +607,8 @@ def main():
     
     
     eps=0.7 #embeddings distance with norm ord
-    epscand=0.25 #fix nb of candidates according to cosim
-    nb_iter=8001
+    epscand=0.4 #fix nb of candidates according to cosim
+    nb_iter=4001
     ord=np.inf #norm choice
     rayon=1. #density search
     
@@ -618,7 +618,7 @@ def main():
     totalnbphrase=0
     totalbrise=0
     totaltime=0
-    for uid in range(5):
+    for uid in range(3):
       vide=True
       vidcompte=0
       while vidcompte<16: 
@@ -638,7 +638,7 @@ def main():
             y = torch.cat((y,labels[iid].unsqueeze(0).to(device)),0) 
         iid+=1
             
-      for eps_iter in [0.5]: 
+      for eps_iter in [1.]: 
       
         t0 = time()
         print("\n")
