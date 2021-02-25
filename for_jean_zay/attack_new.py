@@ -1,3 +1,5 @@
+#attack batch of sentences rather than sentences one by one
+
 from transformers import RobertaTokenizer
 import csv
 import torch
