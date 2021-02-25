@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
  
+#here we attack all the words of a sentence, when we attack a sentence . l1 below will specify the sentence we attack.
+ 
 from transformers import RobertaTokenizer
 import csv
 import torch
@@ -588,6 +590,7 @@ def main():
     res_ne=[] 
     res_cs=[] 
     
+    # l1 : list of all the sentences we will attack
     l1=[0,1,3,6,150,173,197]
     for iid in l1:
      for eps_iter in [0.5]:
