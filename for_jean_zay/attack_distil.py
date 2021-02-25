@@ -1,3 +1,5 @@
+#attack distilbert rather than roberta
+
 from transformers import DistilBertTokenizer
 import csv
 import torch
