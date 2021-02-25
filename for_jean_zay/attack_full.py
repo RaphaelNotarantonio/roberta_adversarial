@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+
+#here we attack sentences by including a language model and a measure of the change in connotation (still to be worked out)
  
 from transformers import RobertaTokenizer
 import csv
