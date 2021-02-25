@@ -19,7 +19,7 @@ unzip cola_public_1.1.zip
 
 You also need to install transformers and advertorch.
 
-You should then manually download models:
+You should then manually download models :
 
 ```
 https://github.com/huggingface/transformers/issues/856
@@ -31,7 +31,7 @@ Then whenever you want to finetune roberta:
 sbatch launch_train_model.py
 ```
 
-Finally, you can attack any sentence with:
+Finally, after having created a folder results, you can attack any sentence with:
 
 ```
 sbatch launch_attack.py  
