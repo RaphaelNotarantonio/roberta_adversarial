@@ -247,6 +247,27 @@ def main():
     #load saved model (which is finetuned roberta)
     model.load_state_dict(torch.load('./roberta_finetuned.pt', map_location=map_location))
     model.eval()
+    
+    # Load BertForSequenceClassification, the pretrained BERT model with a single 
+    # linear classification layer on top. 
+    modd = RobertaForSequenceClassification.from_pretrained(
+        "./my_pretrained", # Use the 12-layer BERT model, with an uncased vocab.  #please rather use "roberta-base"
+        num_labels = 2, # The number of output labels--2 for binary classification.
+                       # You can increase this for multi-class tasks.   
+        output_attentions = False, # Whether the model returns attentions weights.
+        output_hidden_states = False, # Whether the model returns all hidden-states.
+    )
+    # If there's a GPU available...
+    if torch.cuda.is_available():   
+      # Tell pytorch to run this model on the GPU.
+      modd.cuda()
+      map_location=lambda storage, loc: storage.cuda()
+    else: 
+     map_location= 'cpu'
+      
+    #load saved model (which is finetuned roberta)
+    modd.load_state_dict(torch.load('./languagemodel_finetuned.pt', map_location=map_location))
+    modd.eval() 
   
 
     
@@ -361,10 +382,10 @@ def main():
       #PGD
       delta.requires_grad_()
       ii=0
-      B=10
+      B=5
       while ii<nb_iter: #not fool
           outputs = predict(xvar, embvar + delta)
-          loss = loss_fn(outputs, yvar)
+          loss = loss_fn(outputs, yvar) # - 0.1*modd(inputs_embeds=embvar+delta,labels=torch.tensor([16]).to(device))[0]
           if minimize:
               loss = -loss 
 
