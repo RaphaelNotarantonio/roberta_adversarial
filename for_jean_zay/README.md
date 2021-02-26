@@ -31,7 +31,7 @@ Then whenever you want to finetune roberta:
 sbatch launch_train_model.py
 ```
 
-Finally, after having created a directory results, you can attack any sentence with:
+Finally, after having created a directory results, you can attack any sentence with the attack file of your choice using:
 
 ```
 sbatch launch_attack.py  
