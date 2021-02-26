@@ -19,7 +19,7 @@ unzip cola_public_1.1.zip
 
 You also need to install transformers and advertorch.
 
-You should then manually download models into a directory my_pretrained :
+You should then manually download models into a directory my_pretrained (and my_pretrained_distil for distillbert models):
 
 ```
 https://github.com/huggingface/transformers/issues/856
@@ -31,7 +31,7 @@ Then whenever you want to finetune roberta:
 sbatch launch_train_model.py
 ```
 
-Finally, after having created a directory results, you can attack any sentence with the attack file of your choice using:
+Finally, after having created a directory results and a directory pgd_attack, you can attack any sentence with the attack file of your choice using:
 
 ```
 sbatch launch_attack.py  
