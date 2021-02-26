@@ -285,6 +285,7 @@ def main():
      emb=list(model.roberta.embeddings.children())[:1][0](x) #embedding of x
      return emb
    
+    #you can also do this muck quicker: directly return model(inputs_embeds=emb)[0]
     def predict2(x,emb):
 
      #some model requirements for the calculation
@@ -364,9 +365,9 @@ def main():
       :return: tensor containing the perturbed input.
       """
 
-      #will contain all words encountered during PGD
+      #tablist will contain all words encountered during PGD
       nb=len(indlistvar)
-      tablist=[]
+      tablist=[] 
       for t in range(nb):
         tablist+=[[]]
       fool=False
@@ -380,19 +381,19 @@ def main():
       #dist_memory0=np.zeros((nb_iter,))
       #dist_memory1=np.zeros((nb_iter,))
 
-      candid=[torch.empty(0)]*nb
-      convers=[[]]*nb
+      #prepare all potential candidates for the replacement of each attacked word, once and for all: 
+      candid=[torch.empty(0)]*nb #word candidate as embedding
+      convers=[[]]*nb #word candidate as encoding
       for u in range(nb):
-        #prepare all potential candidates, once and for all
         candidates=torch.empty([0,768]).to(device)
         conversion=[]
         emb_matrix=model.roberta.embeddings.word_embeddings.weight   
         normed_emb_matrix=F.normalize(emb_matrix, p=2, dim=1) 
         normed_emb_word=F.normalize(embvar[0][indlistvar[u]], p=2, dim=0) 
         cosine_similarity = torch.matmul(normed_emb_word, torch.transpose(normed_emb_matrix,0,1))
-        for t in range(len(cosine_similarity)): #evitez de faire DEUX boucles .
-          if cosine_similarity[t]>epscand:
-            if levenshtein(tokenizer.decode(torch.tensor([xvar[0][indlistvar[u]]])),tokenizer.decode(torch.tensor([t])))!=1:
+        for t in range(len(cosine_similarity)): 
+          if cosine_similarity[t]>epscand: #ask candidate to be close enough to the attacked word for cosine similarity
+            if levenshtein(tokenizer.decode(torch.tensor([xvar[0][indlistvar[u]]])),tokenizer.decode(torch.tensor([t])))!=1: #ask candidate to have a leveinsthein distance different of 1: 0 (same word) ou 2+ (word not trivially different)
              candidates=torch.cat((candidates,normed_emb_matrix[t].unsqueeze(0)),0)
              conversion+=[t]
         candid[u]=candidates
@@ -429,13 +430,16 @@ def main():
                 #norm_memory0[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[0]])
                 #norm_memory1[ii]=torch.norm(delta[0][indlistvar[0]])/torch.norm(embvar[0][indlistvar[1]])
                 delta.data = tozero(delta.data,indlistvar) 
-                if (ii%100)==0:
-                 adverslist=[]
+                if (ii%100)==0: #every 100 steps we will check if we can misclassify our sentence
+                 adverslist=[] #contain the adversarial candidates at our step
                  for t in range(nb):
-                   advers, nb_vois =neighboors_np_dens_cand((embvar+delta)[0][indlistvar[t]],rayon,candid[t])
+                   advers, nb_vois =neighboors_np_dens_cand((embvar+delta)[0][indlistvar[t]],rayon,candid[t]) #find the adversarial candidate nearest to the embedding returned by our PGD step
                    advers=int(advers[0]) 
                    advers=torch.tensor(convers[t][advers])
-                   if len(tablist[t])==0:
+                   #now let's memorize the adversarial candidates we have just encountered
+                   #we just need to see if our tablist (= our memory) is empty or not: because we decide to not add our encountered candidate if the previous 
+                   # memorized candidate is the same 
+                   if len(tablist[t])==0: 
                      tablist[t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
                    elif not(first(tablist[t][-1])==tokenizer.decode(advers.unsqueeze(0))):  
                      tablist[t]+=[(tokenizer.decode(advers.unsqueeze(0)),ii,nb_vois)]
@@ -443,13 +447,13 @@ def main():
                  #dist_memory0[ii]=torch.norm((embvar+delta)[0][indlistvar[0]]-predict1(adverslist[0].unsqueeze(0).to(device))[0])
                  #dist_memory1[ii]=torch.norm((embvar+delta)[0][indlistvar[1]]-predict1(adverslist[1].unsqueeze(0).to(device))[0])
                  word_balance_memory[ii]=float(model(replacelist(xvar,indlistvar,adverslist),labels=1-yvar)[0])-float(model(replacelist(xvar,indlistvar,adverslist),labels=yvar)[0])
-                 if word_balance_memory[ii]<0:
+                 if word_balance_memory[ii]<0: #this means we have found a valid attack
                    fool=True 
                    #print("fooled by :")
                    #print(adverslist)   
                    #print("\n")          
 
-          elif ord == 0: 
+          elif ord == 0: #to serve for cosim projection norm
               grad = delta.grad.data 
               grad = tozero(grad,indlistvar)    
               delta.data = delta.data + batch_multiply(eps_iter, grad)
@@ -638,7 +642,7 @@ def main():
               delta.data = clamp(
                   emb + delta.data, min=self.clip_min, max=self.clip_max) - emb  
 
-          with torch.no_grad():
+          with torch.no_grad(): # we need to put to zero all indexes that will not be incorporated in our PGD iterations (since we target our attack)
             for t in range(delta.size()[1]):
               if not(t in indlist):
                 for k in range(delta.size()[2]):
@@ -689,10 +693,10 @@ def main():
       res_ne=[] 
       res_cs=[] 
 
-      mf=0
+      mf=0 #number of sentence already misclassified (we don't want to attack these)
 
-      x = input_ids[iid].unsqueeze(0).to(device)
-      y = labels[iid].unsqueeze(0).to(device)
+      x = input_ids[iid].unsqueeze(0).to(device) #our sentence to be attacked
+      y = labels[iid].unsqueeze(0).to(device) #its label
       neigh=3
 
       if float(model(x,labels=y)[0])>float(model(x,labels=1-y)[0]): #if model misclassifies
@@ -725,7 +729,7 @@ def main():
         att=PGDAttack(predict2, loss_fn=None, eps=eps, epscand=epscand, nb_iter=nb_iter,  
                   eps_iter=eps_iter,rayon=rayon, rand_init=True, clip_min=-1., clip_max=1.,
                   ord=ord, l1_sparsity=None, targeted=False)  #0.8#.11#.14                            
-        rval, word_balance_memory, loss_memory, tablist, fool =att.perturb_fool_many(x,emb,indlist,y)
+        rval, word_balance_memory, loss_memory, tablist, fool =att.perturb_fool_many(x,emb,indlist,y) #get answer from our PGD iteration
         print(fool)  
 
          
@@ -750,10 +754,10 @@ def main():
         if fool:
          res_se+=[tokenizer.decode(x[0])]
          res_or+=[orig_wordlist]
-         res_lw+=[tablist]
-         res_lg+=[lenlist(tablist)] 
-         res_ne+=[new_word]
-         res_cs+=[csnlist]
+         res_lw+=[tablist] #list of the different words that have been encountered during the iteration on a targeted attack word
+         res_lg+=[lenlist(tablist)] #number of different words that have been encountered during the iteration on a targeted attack word
+         res_ne+=[new_word] # last adversarial word encountered during the PGD/neighbor-search algo
+         res_cs+=[csnlist] #cosim distance between new_word and original word
          
         t1 = time()
         print('function takes %f' %(t1-t0))
@@ -761,7 +765,7 @@ def main():
     df = pd.DataFrame(list(zip(res_se, res_or,res_lw,res_lg,res_ne,res_cs)), 
                columns =['sentence', 'original word', 'not-fooling words ( = path)', 'path length', 'new word','csn similarity']) 
     
-    
+    #save our results
     df.to_csv('results/results.csv', index = False)  #r
    
 
